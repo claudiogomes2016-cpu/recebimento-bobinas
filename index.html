@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'unsafe-inline'; img-src 'self' data: blob: https://*.supabase.co; connect-src https://*.supabase.co; base-uri 'none'; form-action 'none'">
+<title>Recebimento de Bobina Metálica</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<style>
+:root{--b:#1d6fdc;--bd:#0b2545;--bg:#eef2f7;--t:#14202e;--m:#5b6b7d;--ok:#12805c;--er:#c0392b;--wa:#1a9b4a;--ln:#d3dbe6}
+*{box-sizing:border-box}body{margin:0;font:16px system-ui,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:var(--t)}
+header{background:var(--bd);color:#fff;padding:12px 16px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+header h1{font-size:18px;margin:0;line-height:1.2}header small{display:block;color:#9db6d6;font-size:12px;margin-top:2px}
+nav{display:flex;gap:6px}nav button{background:#16386a;color:#dbe7f7;border:0;border-radius:8px;padding:10px 16px;font-size:15px;cursor:pointer}nav button.on{background:var(--b);color:#fff}
+main{max-width:1300px;margin:0 auto;padding:14px}
+.card{background:#fff;border:1px solid var(--ln);border-radius:10px;padding:14px;margin-bottom:14px}
+h2{font-size:18px;margin:0 0 12px;color:var(--bd)}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:10px 14px;border:0;border-radius:8px;background:var(--b);color:#fff;font-size:16px;font-weight:600;cursor:pointer;width:100%;text-align:center}
+.btn.ok{background:var(--ok)}.btn.wa{background:var(--wa)}.btn.ghost{background:#fff;color:var(--b);border:2px solid var(--b)}.btn.sm{min-height:40px;font-size:14px}.btn:disabled{background:#aab5c3;color:#eef;cursor:not-allowed;border-color:#aab5c3}
+.big{min-height:64px;font-size:20px}
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:14px 0}.stats div{background:#fff;border:1px solid var(--ln);border-radius:10px;padding:14px}.stats b{display:block;font-size:32px;color:var(--bd)}.stats span{color:var(--m);font-size:13px}
+.form{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+label.f{display:block;font-size:13px;color:var(--m)}label.f input,label.f select,label.f textarea{display:block;width:100%;margin-top:4px;padding:12px;font:inherit;color:var(--t);border:1px solid var(--ln);border-radius:8px;background:#fff}
+textarea{min-height:76px}.span{grid-column:1/-1}
+.seg{display:flex;gap:8px}.seg button{flex:1;min-height:48px;border:2px solid var(--ln);background:#fff;border-radius:8px;font-size:16px;cursor:pointer;color:var(--t)}.seg button.on{border-color:var(--b);background:#e3eeff;font-weight:700}.seg button.no.on{border-color:var(--ok);background:#e2f5ee}.seg button.yes.on{border-color:var(--er);background:#fdeae7}
+.cl{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.cl button{min-height:72px;font-size:14px;border:2px solid var(--ln);background:#fff;border-radius:8px;cursor:pointer;color:var(--t)}.cl button.on{border-color:var(--b);background:#e3eeff;font-weight:700}.cl i{display:block;font-size:26px;font-style:normal}
+.bar{height:12px;background:#dfe6ef;border-radius:6px;overflow:hidden;margin:6px 0}.bar i{display:block;height:100%;background:var(--b);width:0;transition:width .3s}.bar.full i{background:var(--ok)}
+.msg{font-size:14px;margin:4px 0 12px}.warn{color:#b26a00}.good{color:var(--ok);font-weight:600}
+.ph{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.pc{border:1px solid var(--ln);border-radius:10px;padding:8px;display:flex;flex-direction:column;gap:6px;background:#fafcff}.pc.done{border-color:var(--ok)}
+.pc h4{margin:0;font-size:13px;color:var(--bd)}
+.th{aspect-ratio:4/3;border-radius:6px;background:#dfe6ef center/cover;display:flex;align-items:center;justify-content:center;font-size:28px;color:#8fa0b5;cursor:pointer}
+.st{font-size:12px;min-height:16px;color:var(--m)}.st.ok{color:var(--ok);font-weight:600}.st.er{color:var(--er)}
+.wrap{display:block}
+aside .card{position:relative}
+dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:14px}dt{color:var(--m)}dd{margin:0;font-weight:600;word-break:break-word}
+.acts{display:grid;gap:10px}
+.row{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:12px;border:1px solid var(--ln);border-radius:8px;background:#fff;margin-bottom:8px;cursor:pointer;flex-wrap:wrap}
+.row:hover{border-color:var(--b)}.tag{font-size:12px;padding:3px 8px;border-radius:12px;background:#e3eeff;color:var(--bd);font-weight:600}.tag.c{background:#e2f5ee;color:var(--ok)}.tag.a{background:#fdeae7;color:var(--er)}
+#toast{position:fixed;left:12px;right:12px;bottom:14px;background:var(--bd);color:#fff;padding:12px 16px;border-radius:8px;display:none;z-index:9;max-width:520px;margin:auto}#toast.er{background:var(--er)}
+#lb{position:fixed;inset:0;background:rgba(5,15,30,.92);display:none;align-items:center;justify-content:center;z-index:10;padding:10px}#lb img{max-width:100%;max-height:100%}
+.banner{background:#e3f6ee;border:2px solid var(--ok);color:var(--ok);padding:14px;border-radius:10px;font-weight:700;margin-bottom:14px}
+#rep{display:none}[hidden]{display:none!important}
+@media(min-width:1000px){.wrap{display:grid;grid-template-columns:1fr 340px;gap:14px;align-items:start}aside{position:sticky;top:10px}.stats{grid-template-columns:repeat(4,1fr)}}
+@media print{body>*:not(#rep){display:none!important}#rep{display:block!important;font-size:12px}#rep .g{display:grid;grid-template-columns:1fr 1fr;gap:10px}#rep figure{margin:0;break-inside:avoid}#rep img{width:100%;height:220px;object-fit:contain;border:1px solid #999}#rep td{padding:3px 8px;border-bottom:1px solid #ccc}}
+</style></head><body>
+<header><div><h1>RECEBIMENTO DE BOBINA METÁLICA</h1><small>Registro de evidências · Importação (China)</small></div>
+<nav hidden><span id="me" style="color:#9db6d6;font-size:13px;align-self:center"></span><button data-v="home">Início</button><button data-v="hist">Histórico</button><button data-v="out">Sair</button></nav></header>
+<main>
+<section id="auth"><div class="card" style="max-width:420px;margin:30px auto"><h2 id="at">Entrar</h2>
+ <form id="fl" onsubmit="return login(event)" class="form" style="grid-template-columns:1fr">
+  <label class="f">Usuário<select id="le" required><option value="">Selecione seu nome…</option></select></label>
+  <label class="f">Senha<input id="lp" type="password" autocomplete="current-password" required></label>
+  <button class="btn">Entrar</button></form>
+ <form id="fs" hidden onsubmit="return setPw(event)" class="form" style="grid-template-columns:1fr">
+  <label class="f">Nova senha (mínimo 10 caracteres)<input id="p1" type="password" autocomplete="new-password" minlength="10" required></label>
+  <label class="f">Repita a senha<input id="p2" type="password" autocomplete="new-password" minlength="10" required></label>
+  <button class="btn">Salvar senha e entrar</button></form>
+ <div class="msg" id="am"></div></div></section>
+<section id="home" hidden>
+ <div id="cfg" class="card" hidden><b>Configuração pendente.</b> Preencha SUPABASE_URL e SUPABASE_ANON_KEY no início do script deste arquivo e execute o setup.sql no Supabase.</div>
+ <button class="btn big" onclick="newRec()">＋ NOVO RECEBIMENTO</button>
+ <div class="stats"><div><b id="s1">–</b><span>Recebimentos hoje</span></div><div><b id="s2">–</b><span>Bobinas recebidas</span></div><div><b id="s3">–</b><span>Com avaria</span></div><div><b id="s4">–</b><span>Sem avaria</span></div></div>
+ <h2>Em andamento</h2><div id="drafts"></div>
+</section>
+
+<section id="hist" hidden>
+ <h2>HISTÓRICO DE RECEBIMENTOS</h2>
+ <label class="f"><input id="q" type="search" placeholder="Buscar por código, data, transportadora ou placa"></label><br>
+ <div id="hl"></div>
+</section>
+
+<section id="rec" hidden><div class="wrap"><div>
+ <div id="done" class="banner" hidden>✓ RECEBIMENTO CONCLUÍDO<br>✓ 10 EVIDÊNCIAS SALVAS NA NUVEM</div>
+ <div class="card"><h2>1. DADOS DO RECEBIMENTO — <span id="code"></span></h2><div class="form">
+  <label class="f">Data e hora<input id="dh" disabled></label>
+  <label class="f">Usuário (login)<input id="usr" disabled></label>
+  <label class="f">Origem<input data-f="origem"></label>
+  <label class="f">Transportadora<input data-f="transportadora"></label>
+  <label class="f">Placa do cavalinho<input data-f="placa" maxlength="8" style="text-transform:uppercase"></label>
+  <label class="f">Nº da Nota Fiscal<input data-f="nota_fiscal" inputmode="numeric"></label>
+  <label class="f">Nº Conhecimento / CT-e / BL<input data-f="conhecimento_transporte"></label>
+ </div></div>
+ <div class="card"><h2>2. REGISTRO FOTOGRÁFICO</h2><b id="cnt">EVIDÊNCIAS 0/10</b><div class="bar" id="bar"><i></i></div><div class="msg" id="pm"></div><div class="ph" id="ph"></div></div>
+ <div class="card"><h2>3. CONDIÇÃO CLIMÁTICA</h2><div class="cl" id="cl"></div><div class="msg" id="clt"></div></div>
+ <div class="card"><h2>4. CHECKLIST FINAL</h2><div class="form">
+  <div class="span"><label class="f">A bobina apresenta avaria?</label><div class="seg" id="av"><button class="yes" data-av="1">SIM</button><button class="no" data-av="0">NÃO</button></div></div>
+  <label class="f">Quantidade de bobinas<input data-f="quantidade_bobinas" type="number" min="1" inputmode="numeric"></label>
+  <label class="f span">Observações<textarea data-f="observacoes"></textarea></label></div></div>
+</div><aside>
+ <div class="card"><h2>RESUMO DO RECEBIMENTO</h2><dl id="sm"></dl></div>
+ <div class="card acts"><button class="btn ok big" id="bf" onclick="fin()">FINALIZAR RECEBIMENTO</button><div class="msg" id="fm"></div>
+  <button class="btn wa" onclick="wa()">📱 ENVIAR PARA O GRUPO WHATSAPP</button>
+  <button class="btn ghost" id="bp" onclick="pdf()">📄 GERAR RELATÓRIO PDF</button></div>
+</aside></div></section>
+</main>
+<div id="rep"></div><div id="lb" onclick="this.style.display='none'"><img id="lbi" alt=""></div><div id="toast"></div>
+<script>
+/* ===== CONFIGURAÇÃO ===== */
+const SUPABASE_URL="https://dndynrhiflfwprwgcczo.supabase.co";
+const SUPABASE_ANON_KEY="sb_publishable_PzsLScaiF8a785fKxUwI8Q_hm96ZOn1";
+const WHATSAPP_GROUP_URL="https://chat.whatsapp.com/Fog9HidsPZQDaZJ5IR7Pid";
+const USUARIOS=["Claudio Gomes","Rickson Carmo","Rafael Cunha","Expedição / InHaus"]; /* nomes que aparecem na lista de login */
+const LOGIN_DOMAIN="example.com"; /* domínio fictício: o usuário digita só o nome no login */
+/* ======================== */
+const T="recebimentos_bobinas",TE="evidencias_bobinas",B="bobinas-evidencias";
+const EV=[["01","frente","Frente da bobina"],["02","lado-esquerdo","Lado esquerdo"],["03","lado-direito","Lado direito"],["04","traseira","Parte de trás"],["05","parte-superior","Parte de cima"],["06","pallet","Pallet / Base"],["07","carreta","Carreta completa"],["08","placa","Placa do cavalinho"],["09","nota-fiscal","Nota fiscal"],["10","conhecimento","Conhecimento de transporte / CT-e / BL"]].map(([n,s,l])=>({n,s,l,f:n+"-"+s}));
+const CL={sol:["☀️","Sol"],parcial:["⛅","Parcialmente nublado"],nublado:["☁️","Nublado"],chuva:["🌧️","Chuva"]};
+const FL={usuario:"usuário",origem:"origem",transportadora:"transportadora",placa:"placa",nota_fiscal:"nota fiscal",conhecimento_transporte:"conhecimento de transporte"};
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const dt=s=>{const d=new Date(s);return d.toLocaleDateString("pt-BR")+" "+d.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})};
+const ls=(k,v)=>{try{return v===undefined?localStorage.getItem(k):localStorage.setItem(k,v)}catch(e){}};
+let sb,R,E={},S={},H=[],tt,U=null,setpw=/type=(invite|recovery)/.test(location.hash);
+function toast(m,er){const t=$("#toast");t.textContent=m;t.className=er?"er":"";t.style.display="block";clearTimeout(tt);tt=setTimeout(()=>t.style.display="none",er?6000:3000)}
+function go(v){$$("main>section").forEach(s=>s.hidden=s.id!=v);$$("nav button").forEach(b=>b.classList.toggle("on",b.dataset.v==(v=="rec"?"home":v)));if(v=="home")loadHome();if(v=="hist")loadHist();scrollTo(0,0)}
+$$("nav button").forEach(b=>b.onclick=()=>b.dataset.v=="out"?sb.auth.signOut():go(b.dataset.v));
+
+async function loadHome(){
+ if(!sb)return;const t=new Date();t.setHours(0,0,0,0);
+ const {data}=await sb.from(T).select("*").gte("data_hora",t.toISOString()).order("data_hora",{ascending:false});
+ const a=data||[],c=a.filter(r=>r.status=="CONCLUIDO");
+ $("#s1").textContent=c.length;$("#s2").textContent=c.reduce((s,r)=>s+(r.quantidade_bobinas||0),0);
+ $("#s3").textContent=c.filter(r=>r.avaria===true).length;$("#s4").textContent=c.filter(r=>r.avaria===false).length;
+ const {data:d2}=await sb.from(T).select("*").eq("status","EM_ANDAMENTO").order("data_hora",{ascending:false}).limit(20);
+ $("#drafts").innerHTML=(d2||[]).map(rowH).join("")||'<div class="msg">Nenhum recebimento em andamento.</div>';bindRows("#drafts",d2||[]);
+}
+function rowH(r){return `<div class="row" data-id="${r.id}"><div><b>${esc(r.codigo_recebimento)}</b><br><small>${dt(r.data_hora)} · ${esc(r.transportadora||"—")} · ${esc(r.placa||"—")}</small></div><div><span class="tag">${r.quantidade_bobinas||0} bob.</span> ${r.avaria===true?'<span class="tag a">Avaria</span>':""} ${r.clima?CL[r.clima][0]:""} <span class="tag ${r.status=="CONCLUIDO"?"c":""}">${r.status=="CONCLUIDO"?"Concluído":"Em andamento"}</span></div></div>`}
+function bindRows(sel,arr){$$(sel+" .row").forEach(e=>e.onclick=()=>openRec(e.dataset.id))}
+async function loadHist(){const {data}=await sb.from(T).select("*").order("data_hora",{ascending:false}).limit(300);H=data||[];drawHist()}
+function drawHist(){const q=$("#q").value.toLowerCase().trim();const a=H.filter(r=>!q||[r.codigo_recebimento,dt(r.data_hora),r.transportadora,r.placa].join(" ").toLowerCase().includes(q));$("#hl").innerHTML=a.map(rowH).join("")||'<div class="msg">Nenhum recebimento encontrado.</div>';bindRows("#hl",a)}
+$("#q").oninput=drawHist;
+
+async function newRec(){
+ const d=new Date(),p=(n,l=2)=>String(n).padStart(l,"0"),ymd=""+d.getFullYear()+p(d.getMonth()+1)+p(d.getDate());
+ for(let k=0;k<4;k++){
+  const {data}=await sb.from(T).select("codigo_recebimento").like("codigo_recebimento",`REC-${ymd}-%`).order("codigo_recebimento",{ascending:false}).limit(1);
+  const n=data&&data[0]?+data[0].codigo_recebimento.slice(-3)+1:1;
+  const {data:r,error}=await sb.from(T).insert({codigo_recebimento:`REC-${ymd}-${p(n,3)}`,data_hora:d.toISOString(),origem:"China",quantidade_bobinas:1,status:"EM_ANDAMENTO"}).select().single();
+  if(!error)return openRec(r.id);if(error.code!="23505")return toast("Erro ao criar: "+error.message,1)}
+}
+async function openRec(id){
+ const {data:r,error}=await sb.from(T).select("*").eq("id",id).single();if(error)return toast(error.message,1);
+ const {data:ev}=await sb.from(TE).select("*").eq("recebimento_id",id).order("created_at");
+ const ps=(ev||[]).map(e=>e.storage_path),{data:sg}=ps.length?await sb.storage.from(B).createSignedUrls(ps,3600):{data:[]};
+ (ev||[]).forEach(e=>e.url=((sg||[]).find(x=>x.path==e.storage_path)||{}).signedUrl||"");
+ R=r;E={};S={};(ev||[]).forEach(e=>E[e.tipo_evidencia]=e);go("rec");render();
+}
+const locked=()=>R.status=="CONCLUIDO";
+function render(){
+ const L=locked(),n=EV.filter(e=>E[e.s]).length,miss=EV.filter(e=>!E[e.s]);
+ $("#code").textContent=R.codigo_recebimento;$("#dh").value=dt(R.data_hora);$("#usr").value=R.usuario||"";$("#done").hidden=!L;
+ $$("[data-f]").forEach(i=>{if(document.activeElement!=i)i.value=R[i.dataset.f]??"";i.disabled=L});
+ $$("[data-av]").forEach(b=>{b.classList.toggle("on",R.avaria===(b.dataset.av=="1"));b.disabled=L});
+ $("#cl").innerHTML=Object.entries(CL).map(([k,v])=>`<button data-cl="${k}" class="${R.clima==k?"on":""}" ${L?"disabled":""}><i>${v[0]}</i>${v[1]}</button>`).join("");
+ $$("[data-cl]").forEach(b=>b.onclick=()=>{patch({clima:b.dataset.cl,clima_data_hora:new Date().toISOString()})});
+ $("#clt").textContent=R.clima_data_hora?"Registrado em "+dt(R.clima_data_hora):"";
+ $("#cnt").textContent=`EVIDÊNCIAS ${n}/10`;$("#bar").className="bar"+(n==10?" full":"");$("#bar i").style.width=n*10+"%";
+ $("#pm").innerHTML=n<10?`<span class="warn">⚠️ Faltam ${10-n} evidências obrigatórias (${miss.map(m=>m.n).join(", ")}).</span>`:'<span class="good">✓ Todas as evidências registradas</span>';
+ $("#ph").innerHTML=EV.map((e,i)=>{const x=E[e.s],s=S[e.s];return `<div class="pc ${x?"done":""}"><h4>${e.n}. ${e.l}</h4><div class="th" data-i="${i}" style="${x?`background-image:url('${esc(x.url)}')`:""}">${x?"":"📷"}</div>
+ <div class="st ${s=="er"?"er":x&&s!="up"?"ok":""}">${s=="up"?"Enviando foto...":s=="er"?"Falha no envio. Tente de novo.":x?"✓ Foto salva na nuvem":"Pendente"}</div>
+ ${L?"":`<label class="btn sm">📷 TIRAR FOTO<input type="file" accept="image/*" capture="environment" hidden data-p="${i}"></label><label class="btn sm ghost">Selecionar imagem<input type="file" accept="image/*" hidden data-p="${i}"></label>`}</div>`}).join("");
+ $$("[data-p]").forEach(i=>i.onchange=()=>{pick(+i.dataset.p,i.files[0]);i.value=""});
+ $$(".th").forEach(t=>t.onclick=()=>{const x=E[EV[t.dataset.i].s];if(x){$("#lbi").src=x.url;$("#lb").style.display="flex"}});
+ sum();const ok=!L&&n==10&&!Object.values(S).includes("up");$("#bf").disabled=!ok;$("#bf").textContent=L?"✓ CONCLUÍDO":"FINALIZAR RECEBIMENTO";
+ $("#fm").innerHTML=L?"":n<10?`<span class="warn">⚠️ Faltam ${10-n} evidências obrigatórias.</span>`:'<span class="good">✓ Todas as evidências registradas</span>';
+ $("#bp").disabled=!L;
+}
+function sum(){const c=R.clima?CL[R.clima][0]+" "+CL[R.clima][1]:"—";const n=EV.filter(e=>E[e.s]).length;
+ $("#sm").innerHTML=[["Código",R.codigo_recebimento],["Data/hora",dt(R.data_hora)],["Usuário",R.usuario],["Origem",R.origem],["Transportadora",R.transportadora],["Placa",R.placa],["Nota fiscal",R.nota_fiscal],["Conhecimento",R.conhecimento_transporte],["Quantidade",(R.quantidade_bobinas||0)+" bobina(s)"],["Avaria",R.avaria==null?"—":R.avaria?"SIM":"NÃO"],["Clima",c],["Evidências",n+"/10"],["Status",locked()?"CONCLUÍDO":"EM ANDAMENTO"]].map(([k,v])=>`<dt>${k}</dt><dd>${esc(v||"—")}</dd>`).join("")}
+async function patch(o){if(locked())return;Object.assign(R,o);render();const {error}=await sb.from(T).update(o).eq("id",R.id);if(error)toast("Não salvou: "+error.message,1)}
+$$("[data-f]").forEach(i=>i.onchange=()=>{const k=i.dataset.f;let v=i.value.trim();if(k=="placa")v=v.toUpperCase();if(k=="quantidade_bobinas")v=parseInt(v)||null;if(k=="usuario")ls("usr",v);patch({[k]:v})});
+$$("[data-av]").forEach(b=>b.onclick=()=>patch({avaria:b.dataset.av=="1"}));
+
+async function shrink(f){const m=await createImageBitmap(f),s=Math.min(1,1600/Math.max(m.width,m.height)),c=document.createElement("canvas");c.width=Math.round(m.width*s);c.height=Math.round(m.height*s);c.getContext("2d").drawImage(m,0,0,c.width,c.height);return new Promise(r=>c.toBlob(r,"image/jpeg",.82))}
+async function pick(i,file){
+ if(!file||locked())return;const e=EV[i];S[e.s]="up";render();
+ try{
+  const blob=await shrink(file),path=`${R.codigo_recebimento}/${e.f}.jpg`;
+  let {error}=await sb.storage.from(B).upload(path,blob,{upsert:true,contentType:"image/jpeg",cacheControl:"0"});if(error)throw error;
+  const sg=await sb.storage.from(B).createSignedUrl(path,3600);
+  await sb.from(TE).delete().eq("recebimento_id",R.id).eq("tipo_evidencia",e.s);
+  const {data,error:e2}=await sb.from(TE).insert({recebimento_id:R.id,tipo_evidencia:e.s,nome_arquivo:e.f+".jpg",storage_path:path,data_hora:new Date().toISOString()}).select().single();if(e2)throw e2;
+  data.url=(sg.data||{}).signedUrl||"";E[e.s]=data;delete S[e.s];toast("✓ Foto salva na nuvem");
+ }catch(x){S[e.s]="er";toast("Falha no envio da foto "+e.n+": "+(x.message||x),1)}
+ render();
+}
+async function fin(){
+ const m=Object.keys(FL).filter(k=>!String(R[k]||"").trim()).map(k=>FL[k]);
+ if(!(R.quantidade_bobinas>0))m.push("quantidade");if(R.avaria==null)m.push("avaria (checklist)");if(!R.clima)m.push("condição climática");
+ if(m.length)return toast("Preencha: "+m.join(", "),1);
+ $("#bf").disabled=true;
+ const {data:fl,error}=await sb.storage.from(B).list(R.codigo_recebimento,{limit:50}),names=(fl||[]).map(x=>x.name);
+ const bad=EV.filter(e=>!names.includes(e.f+".jpg")||!E[e.s]);
+ if(error||bad.length){render();return toast("Fotos não confirmadas na nuvem: "+bad.map(b=>b.n).join(", "),1)}
+ const {data,error:e2}=await sb.from(T).update({status:"CONCLUIDO",finalized_at:new Date().toISOString()}).eq("id",R.id).select().single();
+ if(e2){render();return toast("Erro ao finalizar: "+e2.message,1)}
+ R=data;render();scrollTo(0,0);toast("✓ Recebimento concluído")
+}
+function msg(){const c=R.clima?CL[R.clima][0]+" Clima: "+CL[R.clima][1].toUpperCase():"Clima: —";const n=EV.filter(e=>E[e.s]).length;
+ return ["📦 RECEBIMENTO DE BOBINA METÁLICA","🆔 Recebimento: "+R.codigo_recebimento,"📅 Data/hora: "+dt(R.data_hora),"🌎 Origem: "+(R.origem||"—"),"🚛 Transportadora: "+(R.transportadora||"—"),"🔢 Placa: "+(R.placa||"—"),"📦 Quantidade: "+R.quantidade_bobinas+(R.quantidade_bobinas==1?" bobina":" bobinas"),"⚠️ Avaria: "+(R.avaria?"SIM":"NÃO"),c,"📸 Evidências: "+n+"/10",locked()?"✅ Recebimento concluído":"⏳ Recebimento em andamento"].join("\n\n")}
+function wa(){navigator.clipboard.writeText(msg()).then(()=>toast("Resumo copiado. Cole no grupo do WhatsApp."),()=>toast("Não foi possível copiar o resumo.",1));window.open(WHATSAPP_GROUP_URL,"_blank","noopener,noreferrer")}
+function pdf(){
+ const rows=[["Código",R.codigo_recebimento],["Data / hora",dt(R.data_hora)],["Usuário",R.usuario],["Origem",R.origem],["Transportadora",R.transportadora],["Placa",R.placa],["Nota fiscal",R.nota_fiscal],["Conhecimento de transporte",R.conhecimento_transporte],["Quantidade",R.quantidade_bobinas],["Avaria",R.avaria?"SIM":"NÃO"],["Clima",R.clima?CL[R.clima][1]+" ("+dt(R.clima_data_hora)+")":"—"],["Finalizado em",R.finalized_at?dt(R.finalized_at):"—"],["Observações",R.observacoes]];
+ $("#rep").innerHTML=`<h1>Recebimento de Bobina Metálica</h1><table>${rows.map(([k,v])=>`<tr><td><b>${k}</b></td><td>${esc(v||"—")}</td></tr>`).join("")}</table><h3>Evidências fotográficas</h3><div class="g">${EV.map(e=>`<figure><img src="${esc(E[e.s]?.url||"")}" crossorigin="anonymous"><figcaption>${e.n} | ${e.l}</figcaption></figure>`).join("")}</div>`;
+ const im=$$("#rep img");Promise.all(im.map(i=>i.complete?1:new Promise(r=>{i.onload=i.onerror=r}))).then(()=>print())}
+/* ===== AUTENTICAÇÃO ===== */
+function showAuth(m){$$("main>section").forEach(s=>s.hidden=s.id!="auth");$("nav").hidden=true;$("#fl").hidden=m=="set";$("#fs").hidden=m!="set";$("#at").textContent=m=="set"?"Defina sua senha":"Entrar";$("#am").textContent=""}
+const amsg=(t,er)=>{const m=$("#am");m.textContent=t;m.className="msg "+(er?"warn":"good")};
+function enter(){$("nav").hidden=false;$("#me").textContent=U?U.email:"";go("home")}
+$("#le").innerHTML+=USUARIOS.map(u=>`<option>${esc(u)}</option>`).join("");
+const MAP_ESPECIAL={"Expedição / InHaus":"treslec@ball.com"};
+const toMail=v=>{v=v.trim();if(MAP_ESPECIAL[v])return MAP_ESPECIAL[v];v=v.toLowerCase();return v.includes("@")?v:v.normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,".").replace(/^\.|\.$/g,"")+"@"+LOGIN_DOMAIN};
+async function login(e){e.preventDefault();const {error}=await sb.auth.signInWithPassword({email:toMail($("#le").value),password:$("#lp").value});$("#lp").value="";if(error)amsg("Usuário ou senha incorretos.",1);return false}
+async function forgot(){const em=$("#le").value.trim();if(!em){amsg("Digite seu e-mail acima.",1);return}await sb.auth.resetPasswordForEmail(em,{redirectTo:location.origin+location.pathname});amsg("Se o e-mail estiver autorizado, você receberá um link para definir a senha.")}
+async function setPw(e){e.preventDefault();const a=$("#p1").value;if(a.length<10||a!=$("#p2").value){amsg("As senhas devem ser iguais e ter 10 ou mais caracteres.",1);return false}
+ setpw=false;const {error}=await sb.auth.updateUser({password:a});if(error){setpw=true;amsg("Não foi possível salvar: "+error.message,1);return false}
+ history.replaceState(null,"",location.pathname);$("#p1").value=$("#p2").value="";U=(await sb.auth.getUser()).data.user;enter();return false}
+if(!SUPABASE_URL||!SUPABASE_ANON_KEY){showAuth("login");amsg("Configuração pendente: preencha SUPABASE_URL e SUPABASE_ANON_KEY no script.",1)}
+else{sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+ sb.auth.onAuthStateChange((ev,ses)=>{
+  if(ev=="PASSWORD_RECOVERY")setpw=true;
+  if(setpw&&ses)return showAuth("set");
+  if(!ses){U=null;R=null;return showAuth("login")}
+  if(U&&U.id==ses.user.id)return;U=ses.user;setTimeout(enter,0)});
+ setInterval(()=>{if(!$("#home").hidden)loadHome();else if(!$("#hist").hidden&&document.activeElement!=$("#q"))loadHist()},20000)}
+</script></body></html>
