@@ -198,7 +198,7 @@ button.tag.a{border:0;cursor:pointer;display:inline-flex;align-items:center;gap:
 
 <section id="dash" hidden>
  <h2>PAINEL DE RECEBIMENTOS</h2>
- <div class="chips" id="per"><button data-per="hoje">Hoje</button><button data-per="7" class="on">7 dias</button><button data-per="30">30 dias</button><button data-per="mes">Mês atual</button><button data-per="custom">Período</button></div>
+ <div class="chips" id="per"><button data-per="hoje">Hoje</button><button data-per="7" class="on">7 dias</button><button data-per="30">30 dias</button><button data-per="mes">Mês atual</button><button data-per="tudo">Tudo</button><button data-per="custom">Período</button></div>
  <div class="dates" id="dts" hidden><label class="f">De<input type="date" id="d1"></label><label class="f">Até<input type="date" id="d2"></label></div>
  <button class="btn ghost bra" id="bra" onclick="abrirAvarias()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>RELATÓRIO DE AVARIAS (NF × BOBINAS)</button>
  <div class="kpis" id="kp"></div>
@@ -447,40 +447,48 @@ async function excluir(id,cod){
 /* ===== PAINEL ===== */
 let DP="7",DD=[],DFt=null;
 const dia=d=>{const x=new Date(d);return x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0")+"-"+String(x.getDate()).padStart(2,"0")};
+/* "Tudo": começa no primeiro recebimento já registrado (descoberto em loadDash) */
+let TUDO0=null;
+/* busca TODAS as linhas: o Supabase entrega no máximo 1000 por vez, então vai pedindo em lotes */
+async function buscarTudo(mk){const out=[];for(let i=0;;i+=1000){const {data,error}=await mk().range(i,i+999);if(error)throw error;out.push(...(data||[]));if(!data||data.length<1000)return out}}
 function periodo(){const h=new Date();h.setHours(0,0,0,0);let a=new Date(h),b=new Date(h);b.setDate(b.getDate()+1);
  if(DP=="7")a.setDate(a.getDate()-6);else if(DP=="30")a.setDate(a.getDate()-29);else if(DP=="mes")a.setDate(1);
+ else if(DP=="tudo")a=TUDO0||new Date(2000,0,1);
  else if(DP=="custom"){const x=$("#d1").value,y=$("#d2").value;if(x)a=new Date(x+"T00:00");if(y){b=new Date(y+"T00:00");b.setDate(b.getDate()+1)}}
  return [a,b]}
 async function loadDash(){
- if(!sb)return;const [a,b]=periodo();$("#kp").innerHTML='<div class="vazio">Carregando...</div>';$("#ch").innerHTML="";["g_tr","g_or","g_us","g_cl"].forEach(id=>$("#"+id).innerHTML="");$("#dl").innerHTML="";
+ if(!sb)return;let [a,b]=periodo();$("#kp").innerHTML='<div class="vazio">Carregando...</div>';$("#ch").innerHTML="";["g_tr","g_or","g_us","g_cl"].forEach(id=>$("#"+id).innerHTML="");$("#dl").innerHTML="";
  try{
-  const {data,error}=await sb.from(T).select("*").gte("data_hora",a.toISOString()).lt("data_hora",b.toISOString()).order("data_hora",{ascending:false}).limit(5000);
-  if(error)throw error;
-  DD=data||[];DFt=null;drawDash(a,b)
+  DD=await buscarTudo(()=>{let q=sb.from(T).select("*").lt("data_hora",b.toISOString()).order("data_hora",{ascending:false});return DP=="tudo"?q:q.gte("data_hora",a.toISOString())});
+  if(DP=="tudo"&&DD.length){const p0=new Date(DD[DD.length-1].data_hora);p0.setHours(0,0,0,0);TUDO0=p0;a=p0}
+  DFt=null;drawDash(a,b)
  }catch(x){console.error("Painel:",x);$("#kp").innerHTML=`<div class="vazio" style="grid-column:1/-1">⚠️ Não consegui carregar o painel: ${esc(x.message||x)}. <button class="btn ghost sm" onclick="loadDash()" style="width:auto;display:inline-flex;margin-top:8px">Tentar de novo</button></div>`}}
 function hmin(ms){const m=Math.round(ms/60000);return m<60?m+" min":Math.floor(m/60)+"h "+String(m%60).padStart(2,"0")+"min"}
 /* barras horizontais: total de recebimentos + parte em vermelho = recebimentos com avaria (taxa de avaria por grupo) */
 function hbars(el,campo,rot){const cont={};DD.forEach(r=>{const k=rot(r),c=cont[k]=cont[k]||{n:0,a:0,bob:0,bav:0};c.n++;c.bob+=+r.quantidade_bobinas||0;c.bav+=avB(r);if(avB(r))c.a++});const it=Object.entries(cont).sort((x,y)=>y[1].n-x[1].n),mx=Math.max(1,...it.map(x=>x[1].n));
  $(el).innerHTML=it.length?`<div class="hb">${it.map(([k,v])=>`<button data-k="${esc(campo)}" data-v="${esc(k)}" class="${DFt&&DFt.k==campo&&DFt.v==k?"sel":""}" title="${v.n} recebimento(s), ${v.bob} bobina(s), ${v.bav} avariada(s)"><span>${esc(k)}</span><b>${v.n}${v.bav?` <small>· ${v.bav} bob. avariada${v.bav>1?"s":""} (${v.bob?Math.round(v.bav/v.bob*100):0}%)</small>`:""}</b><i><u style="width:${(v.n-v.a)/mx*100}%"></u><u class="r" style="width:${v.a/mx*100}%"></u></i></button>`).join("")}</div>`:'<div class="vazio">Sem dados no período.</div>'}
-const ROT={av:r=>avB(r)?"Com avaria":"Sem avaria",tr:r=>(r.transportadora||"Não informado").trim().toUpperCase(),or:r=>(r.origem||"Não informado").trim().toUpperCase(),us:r=>r.usuario||"Não informado",cl:r=>r.clima&&CL[r.clima]?CL[r.clima][0]+" "+CL[r.clima][1]:"Não registrado",dia:r=>dia(r.data_hora),hora:r=>String(new Date(r.data_hora).getHours()).padStart(2,"0")+"h"};
+const MESES=["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
+const ROT={av:r=>avB(r)?"Com avaria":"Sem avaria",tr:r=>(r.transportadora||"Não informado").trim().toUpperCase(),or:r=>(r.origem||"Não informado").trim().toUpperCase(),us:r=>r.usuario||"Não informado",cl:r=>r.clima&&CL[r.clima]?CL[r.clima][0]+" "+CL[r.clima][1]:"Não registrado",dia:r=>dia(r.data_hora),mes:r=>dia(r.data_hora).slice(0,7),hora:r=>String(new Date(r.data_hora).getHours()).padStart(2,"0")+"h"};
 function drawDash(a,b){
  const conc=DD.filter(r=>r.status=="CONCLUIDO"),and=DD.length-conc.length,bob=DD.reduce((s,r)=>s+(+r.quantidade_bobinas||0),0),
   av=DD.filter(r=>avB(r)).length,bav=DD.reduce((s,r)=>s+avB(r),0),
   tm=conc.filter(r=>r.finalized_at).map(r=>new Date(r.finalized_at)-new Date(r.data_hora)).filter(x=>x>0),med=tm.length?tm.reduce((s,x)=>s+x,0)/tm.length:null;
  $("#kp").innerHTML=`<div><b>${DD.length}</b><span>Recebimentos</span><small>${conc.length} concluídos</small></div><div><b>${bob}</b><span>Bobinas</span></div><div data-k="av" data-v="Com avaria" class="${DFt&&DFt.k=="av"?"sel":""}" title="Toque para listar só os recebimentos com avaria"><b class="${bav?"r":""}">${bav}</b><span>Bobinas avariadas</span><small>${bob?(bav/bob*100).toFixed(1).replace(".",","):0}% das bobinas · ${av} receb.</small></div><div><b>${and}</b><span>Em andamento</span></div><div><b>${med?hmin(med):"—"}</b><span>Tempo médio</span><small>abertura → finalização</small></div>`;
  /* colunas: por hora se o período for 1 dia, senão por dia */
- const umDia=(b-a)<=864e5,chave=umDia?ROT.hora:ROT.dia,buck=[];
- if(umDia){for(let h=0;h<24;h++)buck.push(String(h).padStart(2,"0")+"h")}else{for(let d=new Date(a);d<b;d.setDate(d.getDate()+1))buck.push(dia(d))}
+ const umDia=(b-a)<=864e5,porMes=(b-a)>62*864e5,chave=umDia?ROT.hora:porMes?ROT.mes:ROT.dia,buck=[];
+ if(umDia){for(let h=0;h<24;h++)buck.push(String(h).padStart(2,"0")+"h")}
+ else if(porMes){for(let d=new Date(a.getFullYear(),a.getMonth(),1);d<b;d.setMonth(d.getMonth()+1))buck.push(dia(d).slice(0,7))}
+ else{for(let d=new Date(a);d<b;d.setDate(d.getDate()+1))buck.push(dia(d))}
  const g={};buck.forEach(k=>g[k]={ok:0,av:0,an:0});DD.forEach(r=>{const k=chave(r);if(!g[k])return;if(r.status!="CONCLUIDO")g[k].an++;else if(avB(r))g[k].av++;else g[k].ok++});
  let cols=buck;if(umDia){const u=buck.filter(k=>g[k].ok+g[k].av+g[k].an);cols=u.length?buck.slice(buck.indexOf(u[0]),buck.indexOf(u[u.length-1])+1):[]}
- const mx=Math.max(1,...cols.map(k=>g[k].ok+g[k].av+g[k].an));$("#evt").textContent=umDia?"Recebimentos por hora":"Recebimentos por dia";
- const ck=umDia?"hora":"dia";
- $("#ch").innerHTML=cols.length?cols.map(k=>{const v=g[k],t=v.ok+v.av+v.an,h=t/mx*100;const lb=umDia?k:k.slice(8,10)+"/"+k.slice(5,7);
+ const mx=Math.max(1,...cols.map(k=>g[k].ok+g[k].av+g[k].an));$("#evt").textContent=umDia?"Recebimentos por hora":porMes?"Recebimentos por mês":"Recebimentos por dia";
+ const ck=umDia?"hora":porMes?"mes":"dia";
+ $("#ch").innerHTML=cols.length?cols.map(k=>{const v=g[k],t=v.ok+v.av+v.an,h=t/mx*100;const lb=umDia?k:porMes?MESES[+k.slice(5,7)-1]+"/"+k.slice(2,4):k.slice(8,10)+"/"+k.slice(5,7);
   return `<button data-k="${ck}" data-v="${k}" class="${DFt&&DFt.v==k?"sel":""}" title="${lb}: ${t}"><div class="ar"><b>${t||""}</b><div class="stk" style="height:${h}%">${v.ok?`<i class="c1" style="flex:${v.ok}"></i>`:""}${v.av?`<i class="c2" style="flex:${v.av}"></i>`:""}${v.an?`<i class="c3" style="flex:${v.an}"></i>`:""}</div></div><small>${lb}</small></button>`}).join(""):'<div class="vazio">Nenhum recebimento no período.</div>';
  hbars("#g_tr","tr",ROT.tr);hbars("#g_or","or",ROT.or);hbars("#g_us","us",ROT.us);hbars("#g_cl","cl",ROT.cl);
  $$("#dash [data-k]").forEach(x=>x.onclick=()=>{DFt=DFt&&DFt.k==x.dataset.k&&DFt.v==x.dataset.v?null:{k:x.dataset.k,v:x.dataset.v};drawDash(a,b);if(DFt)$("#lt").scrollIntoView({behavior:"smooth",block:"center"})});
  const lista=DFt?DD.filter(r=>ROT[DFt.k](r)==DFt.v):DD;
- const nomeF=DFt?(DFt.k=="dia"?DFt.v.slice(8,10)+"/"+DFt.v.slice(5,7):DFt.v):"";
+ const nomeF=DFt?(DFt.k=="dia"?DFt.v.slice(8,10)+"/"+DFt.v.slice(5,7):DFt.k=="mes"?MESES[+DFt.v.slice(5,7)-1]+"/"+DFt.v.slice(0,4):DFt.v):"";
  $("#lt").textContent=DFt?`Recebimentos: ${nomeF} (${lista.length})`:`Recebimentos do período (${lista.length})`;$("#lc").hidden=!DFt;
  $("#dl").innerHTML=lista.slice(0,200).map(rowH).join("")||'<div class="vazio">Nenhum recebimento.</div>';bindRows("#dl")}
 $$("#per button").forEach(x=>x.onclick=()=>{DP=x.dataset.per;$$("#per button").forEach(y=>y.classList.toggle("on",y==x));$("#dts").hidden=DP!="custom";
@@ -510,10 +518,10 @@ function abrirAvarias(){
 function raPer(){const x=$("#ra1").value,y=$("#ra2").value;if(!x||!y)return null;const a=new Date(x+"T00:00"),b=new Date(y+"T00:00");b.setDate(b.getDate()+1);return [a,b,dBR(a),dBR(y+"T00:00")]}
 async function carregarAvarias(){
  const p=raPer();if(!p)return;$("#ral").innerHTML='<div class="vazio">Carregando...</div>';$("#rasum").innerHTML="";
- let q=sb.from(T).select("*").gte("data_hora",p[0].toISOString()).lt("data_hora",p[1].toISOString()).order("data_hora",{ascending:false}).limit(5000);
- if(!$("#raand").checked)q=q.eq("status","CONCLUIDO");
- const {data,error}=await q;if(error){$("#ral").innerHTML=`<div class="vazio">⚠️ Não consegui carregar: ${esc(error.message)}</div>`;return}
- RA=(data||[]).filter(r=>avB(r)>0);RAsel=new Set(RA.map(r=>String(r.id)));drawAvarias()}
+ let data;
+ try{data=await buscarTudo(()=>{const q=sb.from(T).select("*").gte("data_hora",p[0].toISOString()).lt("data_hora",p[1].toISOString()).order("data_hora",{ascending:false});return $("#raand").checked?q:q.eq("status","CONCLUIDO")})}
+ catch(error){$("#ral").innerHTML=`<div class="vazio">⚠️ Não consegui carregar: ${esc(error.message||error)}</div>`;return}
+ RA=data.filter(r=>avB(r)>0);RAsel=new Set(RA.map(r=>String(r.id)));drawAvarias()}
 function raVis(){const q=($("#raq")?.value||"").toLowerCase().trim();return RA.filter(r=>!q||[r.nota_fiscal,r.codigo_recebimento,r.transportadora,r.origem].join(" ").toLowerCase().includes(q))}
 /* entra no relatório o que está marcado E visível no filtro — o que você vê marcado é o que sai */
 const raSel=()=>raVis().filter(r=>RAsel.has(String(r.id)));
