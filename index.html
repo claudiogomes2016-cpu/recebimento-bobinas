@@ -68,6 +68,7 @@ h2{font-size:15px;margin:0 0 12px;color:var(--bd);overflow-wrap:anywhere;font-we
 .form{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(200px,100%),1fr));gap:12px}
 label.f{display:block;font-size:12.5px;color:var(--m);min-width:0;font-weight:600}label.f input,label.f select,label.f textarea{display:block;width:100%;min-width:0;margin-top:5px;padding:11px 12px;font:inherit;font-size:16px;font-weight:400;color:var(--t);border:1px solid var(--ln);border-radius:10px;background:#fff;transition:border-color .15s,box-shadow .15s}
 label.f input:focus,label.f select:focus,label.f textarea:focus,.opf input:focus{outline:0;border-color:var(--b);box-shadow:0 0 0 3px rgba(17,64,254,.15)}
+.hint{display:block;margin-top:6px;font-size:12px;font-weight:400;color:var(--m)}
 label.f input:disabled{background:var(--bg);color:var(--m)}
 textarea{min-height:76px}.span{grid-column:1/-1}
 .seg{display:flex;gap:0;background:var(--bg);border:1px solid var(--ln);border-radius:10px;padding:3px}.seg button{flex:1;min-height:44px;border:0;background:transparent;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;color:var(--m);transition:background .15s,color .15s}
@@ -79,7 +80,7 @@ textarea{min-height:76px}.span{grid-column:1/-1}
 .ph{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .pc{border:1px solid var(--ln);border-radius:10px;padding:8px;display:flex;flex-direction:column;gap:6px;background:#fff;min-width:0;transition:border-color .2s}.pc.done{border-color:#9fd5bf;background:#fbfefc}.pc.bad{border-color:#eab0a9;background:#fffafa}
 .pc h4{margin:0;font-size:12.5px;color:var(--bd);min-height:32px;font-weight:600}
-.th{aspect-ratio:4/3;border-radius:7px;background:var(--ln2) center/cover;display:flex;align-items:center;justify-content:center;font-size:28px;color:var(--g);cursor:pointer;border:1px dashed #cfd1d6}.pc.done .th,.th[style*=background-image]{border:0}
+.th{aspect-ratio:4/3;border-radius:7px;background:var(--ln2) center/cover;display:flex;align-items:center;justify-content:center;font-size:28px;color:var(--g);cursor:pointer;border:1px dashed #cfd1d6}.pc.done .th,.th.has{border:0}.th{overflow:hidden}.th img{width:100%;height:100%;object-fit:cover;display:block}
 .st{font-size:12px;min-height:16px;color:var(--m)}.st.ok{color:var(--ok);font-weight:600}.st.er{color:var(--er);font-weight:600}
 .retry{display:inline-flex;align-items:center;gap:4px;margin-top:6px;border:1px solid #eab0a9;background:#fff;color:var(--er);border-radius:7px;padding:5px 9px;font:inherit;font-size:12px;font-weight:700;cursor:pointer}
 .wrap{display:block}
@@ -274,13 +275,13 @@ body.inrec main{padding-bottom:calc(var(--nav) + 100px + env(safe-area-inset-bot
   <label class="f">Nota fiscal<input data-f="nota_fiscal" placeholder="Número da NF" inputmode="numeric"></label>
   <input id="usr" type="hidden">
   <div class="f opf span">Origem<div class="seg" data-op="origem"><button type="button" data-o="China">CHINA</button><button type="button" data-o="">OUTROS</button></div><input data-f="origem" placeholder="Digite a origem" hidden></div>
+  <div class="f opf span">Quantas bobinas neste recebimento?<div class="seg"><button type="button" data-b2="0">1 BOBINA</button><button type="button" data-b2="1">2 BOBINAS</button></div><small class="hint">Define quantas fotos serão pedidas: 1 bobina = 10 fotos · 2 bobinas = 17 fotos (+1 por avaria).</small></div>
   <div class="f opf span">Transportadora<div class="seg" data-op="transportadora"><button type="button" data-o="Poloni">POLONI</button><button type="button" data-o="">OUTROS</button></div><input data-f="transportadora" placeholder="Digite o nome da transportadora" hidden></div>
  </div></div>
  <div class="card" id="c2"><h2><span class="n">2</span>Registro fotográfico</h2><b id="cnt">EVIDÊNCIAS 0/10</b><div class="bar" id="bar"><i></i></div><div class="msg" id="pm"></div>
 <h3 class="sub sub-first">Dados da carreta</h3><div class="ph" id="ph-trk"></div>
 <h3 class="sub">Vistoria — Bobina 1</h3><div class="ph" id="ph-b1"></div>
 <div class="av-block"><label class="f">A bobina 1 apresenta avaria?</label><div class="seg"><button class="yes" data-av1="1">SIM</button><button class="no" data-av1="0">NÃO</button></div><div id="avt1" class="avt" hidden>📸 Com avaria, a foto da avaria é obrigatória.</div><div id="avf1" class="avf"></div></div>
-<h3 class="sub">Terá uma segunda bobina neste recebimento?</h3><div class="seg"><button class="yes" data-b2="1">SIM</button><button class="no" data-b2="0">NÃO</button></div>
 <div id="sec-b2" hidden><h3 class="sub">Vistoria — Bobina 2</h3><div class="ph" id="ph-b2"></div>
 <div class="av-block"><label class="f">A bobina 2 apresenta avaria?</label><div class="seg"><button class="yes" data-av2="1">SIM</button><button class="no" data-av2="0">NÃO</button></div><div id="avt2" class="avt" hidden>📸 Com avaria, a foto da avaria é obrigatória.</div><div id="avf2" class="avf"></div></div>
 </div>
@@ -370,7 +371,8 @@ $$("nav button").forEach(b=>b.onclick=async()=>{
  U=null;R=null;showAuth("login")
 });
 
-async function loadHome(){
+let ACC_T=0;
+async function loadHome(auto){
  if(!sb)return;const t=new Date();t.setHours(0,0,0,0);const de=new Date(t);de.setDate(de.getDate()-6);
  const {data}=await sb.from(T).select("*").gte("data_hora",de.toISOString()).order("data_hora",{ascending:false});
  const todos=data||[],a=todos.filter(r=>new Date(r.data_hora)>=t),c=a.filter(r=>r.status=="CONCLUIDO");
@@ -389,9 +391,10 @@ async function loadHome(){
  $("#hch").innerHTML=buck.map(k=>{const v=g[k],h=v/mxh*100,lb=k.slice(8,10)+"/"+k.slice(5,7);
   return `<button type="button" title="${lb}: ${v} bobina(s)"><div class="ar"><b>${v||""}</b><div class="stk" style="height:${h}%">${v?'<i style="flex:1;background:var(--b)"></i>':""}</div></div><small>${lb}</small></button>`}).join("");
  /* acumulado geral: todas as bobinas já recebidas (concluídas), sem filtro de data */
+ if(!auto||Date.now()-ACC_T>6e5){ACC_T=Date.now();
  const {data:acc}=await sb.from(T).select("quantidade_bobinas,avaria,avaria_b2,tem_bobina2").eq("status","CONCLUIDO").limit(20000);
  const accR=acc||[],accBob=accR.reduce((s,r)=>s+(+r.quantidade_bobinas||0),0),accAv=accR.reduce((s,r)=>s+avB(r),0);
- $("#ac1").textContent=accBob;$("#ac2").textContent=accAv;$("#ac3").textContent=accBob?"("+pct(accAv,accBob)+")":"";
+ $("#ac1").textContent=accBob;$("#ac2").textContent=accAv;$("#ac3").textContent=accBob?"("+pct(accAv,accBob)+")":"";}
  const {data:d2}=await sb.from(T).select("*").eq("status","EM_ANDAMENTO").order("data_hora",{ascending:false}).limit(20);
  $("#dcount").textContent=(d2||[]).length?(d2.length+" aberto"+(d2.length>1?"s":"")):"";
  $("#drafts").innerHTML=(d2||[]).map(rowH).join("")||'<div class="card vazio" style="text-align:center">✓ Nenhum recebimento em andamento.</div>';bindRows("#drafts");
@@ -404,7 +407,7 @@ async function loadHome(){
   $("#halert").hidden=false;
  }else $("#halert").hidden=true;
 }
-function rowH(r){const c=r.status=="CONCLUIDO",nav=avB(r),av=nav>0;return `<div class="row"><div class="rm" data-id="${r.id}" data-c="${c?1:0}"><div class="top"><b>${esc(r.codigo_recebimento)}</b><span class="pill ${c?"c":"a"}">${c?"Concluído":"Em andamento · "+hmin(Date.now()-new Date(r.data_hora))}</span></div><small>${dt(r.data_hora)} · ${esc(r.transportadora||"—")}${r.nota_fiscal?" · NF "+esc(r.nota_fiscal):c?' · <span class="warn">sem NF</span>':""}${r.usuario?" · "+esc(r.usuario):""}</small><div class="tags"><span class="tag">${r.quantidade_bobinas||0} bob.</span>${av?`<button type="button" class="tag a" data-av="${r.id}">${ICO.view} Avaria${nav>1?" ×2":""}</button>`:""}${r.clima&&CL[r.clima]?"<span>"+CL[r.clima][0]+"</span>":""}<span class="tag">${diaNoite(r.data_hora)}</span></div></div><div class="ra"><button data-vi="${r.id}">${ICO.view} Ver</button><button data-wa="${r.id}" ${c?"":"disabled"}>${ICO.wa} Zap</button><button data-pdf="${r.id}" ${c?"":"disabled"}>${ICO.pdf} PDF</button><button data-ed="${r.id}">${ICO.edit} Editar</button><button data-dl="${r.id}" data-cd="${esc(r.codigo_recebimento)}">${ICO.trash} Excluir</button></div></div>`}
+function rowH(r){const c=r.status=="CONCLUIDO",nav=avB(r),av=nav>0;return `<div class="row"><div class="rm" data-id="${r.id}" data-c="${c?1:0}"><div class="top"><b>${esc(r.codigo_recebimento)}</b><span class="pill ${c?"c":"a"}">${c?"Concluído":"Em andamento · "+hmin(Date.now()-new Date(r.data_hora))}</span></div><small>${dt(r.data_hora)} · ${esc(r.transportadora||"—")}${r.nota_fiscal?" · NF "+esc(r.nota_fiscal):c?' · <span class="warn">sem NF</span>':""}${r.usuario?" · "+esc(r.usuario):""}</small><div class="tags"><span class="tag">${r.quantidade_bobinas||0} bob.</span>${av?`<button type="button" class="tag a" data-av="${r.id}">${ICO.view} Avaria${nav>1?" ×2":""}</button>`:""}${r.clima&&CL[r.clima]?"<span>"+CL[r.clima][0]+"</span>":""}<span class="tag">${diaNoite(r.data_hora)}</span></div></div><div class="ra"><button data-vi="${r.id}">${ICO.view} Ver</button><button data-wa="${r.id}" ${c?"":"disabled"}>${ICO.wa} Zap</button><button data-pdf="${r.id}" ${c?"":"disabled"}>${ICO.pdf} PDF</button></div></div>`}
 function bindRows(sel){$$(sel+" .rm").forEach(e=>e.onclick=()=>e.dataset.c=="1"?ver(e.dataset.id):openRec(e.dataset.id));$$(sel+" [data-vi]").forEach(b=>b.onclick=()=>ver(b.dataset.vi));$$(sel+" [data-av]").forEach(b=>b.onclick=ev=>{ev.stopPropagation();ver(b.dataset.av,"avaria")});$$(sel+" [data-wa]").forEach(b=>b.onclick=()=>waLista(b));$$(sel+" [data-pdf]").forEach(b=>b.onclick=()=>pdfLista(b));$$(sel+" [data-ed]").forEach(b=>b.onclick=()=>editar(b.dataset.ed));$$(sel+" [data-dl]").forEach(b=>b.onclick=()=>excluir(b.dataset.dl,b.dataset.cd))}
 function olho(b){const i=b.previousElementSibling,v=i.type=="password";i.type=v?"text":"password";b.classList.toggle("on",v);b.setAttribute("aria-label",v?"Esconder senha":"Mostrar senha");b.innerHTML=v?ICO.eyeOff:ICO.eye}
 $$(".eye").forEach(b=>b.innerHTML=ICO.eye);
@@ -423,9 +426,10 @@ async function ver(id,foco){
  const dados=[["Usuário",r.usuario],["Origem",r.origem],["Transportadora",r.transportadora],["Quantidade",(r.quantidade_bobinas||0)+" bobina(s)"],["Avaria",avB(r)?avQuais(r)+" ("+avB(r)+" bobina"+(avB(r)>1?"s":"")+")":r.avaria==null?"—":"NÃO"],["Clima",r.clima&&CL[r.clima]?CL[r.clima][0]+" "+CL[r.clima][1]:"—"],["Período",diaNoite(r.data_hora)],["Finalizado em",r.finalized_at?dt(r.finalized_at):"—"],["Observações",r.observacoes]];
  $("#vwc").innerHTML=`<div class="card"><dl><dt>Nota fiscal</dt><dd><span class="nfEdit"><input id="vwnf" value="${esc(r.nota_fiscal||"")}" placeholder="Número da NF" inputmode="numeric"><button type="button" id="vwnfSalvar" class="btn sm">Salvar</button></span><small id="vwnfSt" class="st"></small></dd>${dados.map(([k,v])=>`<dt>${k}</dt><dd>${esc(v||"—")}</dd>`).join("")}</dl></div>
   <div class="card"><h3>Fotos (${lista.length})</h3>${lista.length?`<div class="vg">${lista.map((e,i)=>`<figure data-u="${esc(e.url)}" class="${e.tipo_evidencia=="avaria"||e.tipo_evidencia=="avaria-b2"?"av":""}">${e.url?`<img src="${esc(e.url)}" alt="${esc(NOMES[e.tipo_evidencia]||e.tipo_evidencia)}" loading="lazy">`:'<div class="sf">Foto indisponível</div>'}<figcaption>${esc(NOMES[e.tipo_evidencia]||e.tipo_evidencia)}</figcaption></figure>`).join("")}</div>`:'<div class="vazio">Nenhuma foto registrada.</div>'}</div>
-  <div class="acts2"><button class="btn ghost" id="vwe">✏️ Editar outros dados</button><button class="btn" id="vwf">Fechar</button></div>`;
+  <div class="acts2"><button class="btn ghost" id="vwe">${ICO.edit} ${c?"Editar (reabre)":"Continuar"}</button><button class="btn" id="vwf">Fechar</button></div>
+  <button class="btn del sm" id="vwd" style="margin-top:10px">${ICO.trash} Excluir recebimento</button>`;
  $$("#vwc figure").forEach(f=>f.onclick=()=>{if(f.dataset.u){$("#lbi").src=f.dataset.u;$("#lb").style.display="flex"}});
- $("#vwe").onclick=()=>{fecharVer();editar(id)};$("#vwf").onclick=fecharVer;
+ $("#vwe").onclick=()=>{fecharVer();editar(id)};$("#vwf").onclick=fecharVer;$("#vwd").onclick=()=>{fecharVer();excluir(id,r.codigo_recebimento)};
  $("#vwnfSalvar").onclick=async()=>{
   const v=$("#vwnf").value.trim(),btn=$("#vwnfSalvar"),st=$("#vwnfSt"),t0=btn.textContent;
   btn.disabled=true;btn.textContent="Salvando...";st.textContent="";st.className="st";
@@ -698,13 +702,13 @@ function render(){
  $$("[data-av2]").forEach(b=>{b.classList.toggle("on",R.avaria_b2===(b.dataset.av2=="1"));b.disabled=L});
  $$("[data-b2]").forEach(b=>{b.classList.toggle("on",R.tem_bobina2===(b.dataset.b2=="1"));b.disabled=L});
  $("#sec-b2").hidden=R.tem_bobina2!==true;
- $("#cl").innerHTML=Object.entries(CL).map(([k,v])=>`<button data-cl="${k}" class="${R.clima==k?"on":""}" ${L?"disabled":""}><i>${v[0]}</i>${v[1]}</button>`).join("");
+ $("#cl").innerHTML=Object.entries(CL).filter(([k])=>k!="noite"||R.clima=="noite").map(([k,v])=>`<button data-cl="${k}" class="${R.clima==k?"on":""}" ${L?"disabled":""}><i>${v[0]}</i>${v[1]}</button>`).join("");
  $$("[data-cl]").forEach(b=>b.onclick=()=>{patch({clima:b.dataset.cl,clima_data_hora:new Date().toISOString()})});
  $("#clt").textContent=R.clima_data_hora?"Registrado em "+dt(R.clima_data_hora):"";
  $("#perr").textContent="Período: "+diaNoite(R.data_hora)+" (calculado automaticamente pelo horário do recebimento)";
- $("#cnt").textContent=`EVIDÊNCIAS ${n}/${NF}`;$("#bar").className="bar"+(n==NF?" full":"");$("#bar i").style.width=n/NF*100+"%";
- $("#pm").innerHTML=n<NF?`<span class="warn">⚠️ Faltam ${NF-n} evidências obrigatórias (${miss.map(m=>m.d).join(", ")}).</span>`:R.tem_bobina2==null?'<span class="warn">⚠️ Responda logo abaixo se terá uma segunda bobina.</span>':'<span class="good">✓ Todas as evidências registradas</span>';
- const cardH=(e,i)=>{const x=E[e.s],s=S[e.s];return `<div class="pc ${s=="bloq"||s=="er"?"bad":x?"done":""}"><h4>${e.d}. ${e.l}</h4><div class="th" data-i="${i}" style="${(PREV[R.id+"|"+e.s]||x)?`background-image:url('${esc(PREV[R.id+"|"+e.s]||x.url)}')`:""}">${(PREV[R.id+"|"+e.s]||x)?"":ICO.cam}</div>
+ $("#cnt").textContent=`EVIDÊNCIAS ${n}/${NF}`+(R.tem_bobina2==null&&!L?" · informe a quantidade de bobinas no item 1":"");$("#bar").className="bar"+(n==NF?" full":"");$("#bar i").style.width=n/NF*100+"%";
+ $("#pm").innerHTML=n<NF?`<span class="warn">⚠️ Faltam ${NF-n} evidências obrigatórias (${miss.map(m=>m.d).join(", ")}).</span>`:R.tem_bobina2==null?'<span class="warn">⚠️ Informe no item 1 quantas bobinas tem este recebimento.</span>':'<span class="good">✓ Todas as evidências registradas</span>';
+ const cardH=(e,i)=>{const x=E[e.s],s=S[e.s];return `<div class="pc ${s=="bloq"||s=="er"?"bad":x?"done":""}"><h4>${e.d}. ${e.l}</h4><div class="th ${(PREV[R.id+"|"+e.s]||x)?"has":""}" data-i="${i}">${(PREV[R.id+"|"+e.s]||x)?`<img src="${esc(PREV[R.id+"|"+e.s]||x.url)}" alt="" loading="lazy" decoding="async">`:ICO.cam}</div>
  <div class="st ${s=="er"||s=="off"||s=="bloq"?"er":x&&!s?"ok":""}">${s=="prep"?"Preparando a foto...":s=="up"?"⏫ Enviando foto...":s=="re"?"⏳ Sinal fraco, tentando de novo ("+(TENT[R.id+"|"+e.s]||1)+")...":s=="off"?"📵 Sem internet. A foto está guardada e sobe sozinha quando o sinal voltar.":s=="er"?"⚠️ Não subiu ainda. Vou tentar de novo sozinho.":s=="bloq"?"❌ O Supabase recusou esta foto.":x?"✓ Foto salva na nuvem":"Pendente"}${s=="bloq"&&WHY[R.id+"|"+e.s]?`<small class="why">${esc(WHY[R.id+"|"+e.s])}</small>`:""}${(s=="bloq"||s=="er"||s=="re")&&ERR[R.id+"|"+e.s]?`<small class="det">${esc(ERR[R.id+"|"+e.s])}</small>`:""}${s=="bloq"||s=="er"?`<button type="button" class="retry" data-rt="${esc(R.id+"|"+e.s)}">↻ Tentar de novo</button>`:""}</div>
  ${L?"":`<label class="btn sm">${ICO.cam} TIRAR FOTO<input type="file" accept="image/*" capture="environment" hidden data-p="${i}"></label>`}</div>`};
  const grp=g=>EV.map((e,i)=>({e,i})).filter(x=>x.e.g==g).map(x=>cardH(x.e,x.i)).join("");
@@ -719,12 +723,12 @@ function render(){
  sum();
  const answered=R.avaria!=null&&R.tem_bobina2!=null&&(R.tem_bobina2!==true||R.avaria_b2!=null);
  const pend=Object.keys(S).length>0,ok=!L&&n==NF&&!pend&&answered;$("#bf").disabled=!ok;$("#bf").textContent=L?"✓ CONCLUÍDO":"FINALIZAR RECEBIMENTO";
- $("#fm").innerHTML=L?"":pend?'<span class="warn">⏫ Aguarde: fotos ainda subindo para a nuvem.</span>':n<NF?`<span class="warn">⚠️ Faltam ${NF-n} evidências obrigatórias.</span>`:R.avaria==null?'<span class="warn">⚠️ Responda se a bobina 1 tem avaria.</span>':R.tem_bobina2==null?'<span class="warn">⚠️ Responda se terá uma segunda bobina.</span>':(R.tem_bobina2===true&&R.avaria_b2==null?'<span class="warn">⚠️ Responda se a bobina 2 tem avaria.</span>':'<span class="good">✓ Todas as evidências registradas</span>');
+ $("#fm").innerHTML=L?"":pend?'<span class="warn">⏫ Aguarde: fotos ainda subindo para a nuvem.</span>':n<NF?`<span class="warn">⚠️ Faltam ${NF-n} evidências obrigatórias.</span>`:R.avaria==null?'<span class="warn">⚠️ Responda se a bobina 1 tem avaria.</span>':R.tem_bobina2==null?'<span class="warn">⚠️ Informe quantas bobinas (item 1).</span>':(R.tem_bobina2===true&&R.avaria_b2==null?'<span class="warn">⚠️ Responda se a bobina 2 tem avaria.</span>':'<span class="good">✓ Todas as evidências registradas</span>');
  $("#bp").disabled=!L;updWa();$("#be").hidden=!L;
  /* cabeçalho, etapas e barra fixa */
  $("#rmeta").textContent=[dt(R.data_hora),R.usuario,diaNoite(R.data_hora)].filter(Boolean).join(" · ");
  $("#rst").className="pill "+(L?"c":"a");$("#rst").textContent=L?"Concluído":"Em andamento";
- const dados=["origem","transportadora"].every(k=>String(R[k]||"").trim()),st=[dados,n==NF&&answered,!!R.clima,L];
+ const dados=["origem","transportadora"].every(k=>String(R[k]||"").trim())&&R.tem_bobina2!=null,st=[dados,n==NF&&answered,!!R.clima,L];
  $$("#steps a").forEach((x,i)=>{x.className=st[i]?"ok":(st.indexOf(false)==i?"cur":"")});
  $("#dock").hidden=L;$("#dkn").textContent=n+"/"+NF;$("#dkb").className="bar"+(n==NF?" full":"");$("#dkb i").style.width=n/NF*100+"%";
  $("#dkt").textContent=pend?"enviando fotos...":ok?"pronto para finalizar":(sumPend()[0]||"");$("#dkf").disabled=!ok;
@@ -742,7 +746,7 @@ function chk(){syncEV();const n=EV.filter(e=>E[e.s]).length,miss=EV.filter(e=>!E
   [!!String(R.nota_fiscal||"").trim(),"Nota fiscal (recomendado)","#c1",R.nota_fiscal||"opcional"],
   [n==NF&&!pend,"Fotos obrigatórias","#c2",pend?"enviando "+pend:n+"/"+NF+(miss.length&&miss.length<=3?" · faltam "+miss.map(m=>m.d).join(", "):"")],
   [R.avaria!=null,"Avaria da bobina 1","#c2",R.avaria==null?"":R.avaria?"SIM":"NÃO"],
-  [R.tem_bobina2!=null,"Segunda bobina","#c2",R.tem_bobina2==null?"":R.tem_bobina2?"SIM":"NÃO"],
+  [R.tem_bobina2!=null,"Quantidade de bobinas","#c1",R.tem_bobina2==null?"":R.tem_bobina2?"2 bobinas":"1 bobina"],
   ...(R.tem_bobina2===true?[[R.avaria_b2!=null,"Avaria da bobina 2","#c2",R.avaria_b2==null?"":R.avaria_b2?"SIM":"NÃO"]]:[]),
   [!!R.clima,"Condição climática","#c3",R.clima&&CL[R.clima]?CL[R.clima][0]+" "+CL[R.clima][1]:""]]}
 const sumPend=()=>chk().filter(x=>!x[0]&&!/recomendado/.test(x[1])).map(x=>"falta: "+x[1].toLowerCase());
@@ -802,7 +806,7 @@ async function enviar(key){
   while(true){
    const it=await filaPega(key);if(!it)return;
    if(!navigator.onLine){marca(it,"off");return}
-   while(ATIVOS>=2)await espera(300); /* no máximo 2 fotos subindo ao mesmo tempo */
+   while(ATIVOS>=3)await espera(300); /* no máximo 3 fotos subindo ao mesmo tempo */
    ATIVOS++;TENT[key]=(TENT[key]||0)+1;marca(it,"up");let etapa="foto";
    try{
     const path=`${it.cod}/${it.f}.jpg`;
@@ -837,7 +841,7 @@ setInterval(()=>{if(navigator.onLine)enviarFila()},30000);
 async function fin(){
  syncEV();
  const m=Object.keys(FL).filter(k=>!String(R[k]||"").trim()).map(k=>FL[k]);
- if(R.avaria==null)m.push("avaria da bobina 1");if(R.tem_bobina2==null)m.push("segunda bobina (sim/não)");if(R.tem_bobina2===true&&R.avaria_b2==null)m.push("avaria da bobina 2");if(!R.clima)m.push("condição climática");
+ if(R.avaria==null)m.push("avaria da bobina 1");if(R.tem_bobina2==null)m.push("quantidade de bobinas (1 ou 2)");if(R.tem_bobina2===true&&R.avaria_b2==null)m.push("avaria da bobina 2");if(!R.clima)m.push("condição climática");
  if(m.length)return toast("Preencha: "+m.join(", "),1);
  $("#bf").disabled=true;
  const {data:fl,error}=await sb.storage.from(B).list(R.codigo_recebimento,{limit:50}),names=(fl||[]).map(x=>x.name);
@@ -934,7 +938,7 @@ else{sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
   if(setpw&&ses)return showAuth("set");
   if(!ses){U=null;R=null;return showAuth("login")}
   if(U&&U.id==ses.user.id)return;U=ses.user;setTimeout(enter,0)});
- setInterval(()=>{if(!$("#home").hidden)loadHome();else if(!$("#hist").hidden&&document.activeElement!=$("#q"))loadHist()},20000)}
+ setInterval(()=>{if(document.hidden)return;if(!$("#home").hidden)loadHome(1);else if(!$("#hist").hidden&&document.activeElement!=$("#q"))loadHist()},20000)}
 
 /* altura do cabeçalho fixo */
 const hd=document.querySelector("header"),hh=()=>document.documentElement.style.setProperty("--hh",hd.offsetHeight+"px");hh();addEventListener("resize",hh);if(window.ResizeObserver)new ResizeObserver(hh).observe(hd);
