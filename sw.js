@@ -1,6 +1,6 @@
 /* Service worker do app Metal Chinês.
    A CADA ATUALIZAÇÃO no GitHub, aumente o número da VERSAO abaixo (v18 → v19 → v20...). */
-const VERSAO = "v42";
+const VERSAO = "v43";
 const CACHE = "metal-chines-" + VERSAO;
 const ARQUIVOS = ["./", "./index.html", "./manifest.webmanifest",
   "./icon-192.png", "./icon-512.png", "./icon-maskable-512.png", "./apple-touch-icon.png"];

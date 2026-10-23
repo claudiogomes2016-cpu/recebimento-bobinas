@@ -182,6 +182,14 @@ body.inrec main{padding-bottom:calc(var(--nav) + 100px + env(safe-area-inset-bot
 .rai input{flex:none;width:22px;height:22px;accent-color:var(--er)}.rai span{flex:1;min-width:0}.rai b{display:block;overflow-wrap:anywhere}.rai small{display:block;color:var(--m);font-size:12.5px;overflow-wrap:anywhere}
 .rai em{flex:none;font-style:normal;font-size:24px;font-weight:700;color:var(--er);text-align:center;line-height:1}.rai em small{font-size:11px;font-weight:600;color:var(--er)}
 .rasum{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;text-align:center}.rasum b{display:block;font-size:26px;color:var(--b)}.rasum b.r{color:var(--er)}.rasum span{font-size:12px;color:var(--m)}
+#wag{position:fixed;inset:0;z-index:9;background:rgba(10,11,14,.55);display:flex;align-items:flex-end;justify-content:center}
+.wagb{background:#fff;width:100%;max-width:480px;border-radius:16px 16px 0 0;overflow:hidden;padding-bottom:env(safe-area-inset-bottom,0px)}
+#wagm p{margin:0 0 12px;font-size:14.5px}.wagp{list-style:none;margin:0 0 14px;padding:0;display:grid;gap:6px}
+.wagp li{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;background:var(--bg);font-size:14px;color:var(--m)}
+.wagp li i{flex:none;width:24px;height:24px;border-radius:50%;background:#fff;border:2px solid var(--ln);display:flex;align-items:center;justify-content:center;font-style:normal;font-size:12px;font-weight:700}
+.wagp li.ok{color:var(--ok)}.wagp li.ok i{background:var(--ok);border-color:var(--ok);color:#fff}.wagp li.cur{background:#e8f7ee;color:var(--t);font-weight:600}.wagp li.cur i{border-color:var(--wa);color:var(--wa)}
+@media(min-width:700px){#wag{align-items:center}.wagb{border-radius:16px}}
+#wagx{flex:none;width:40px;height:40px;border-radius:50%;border:0;background:var(--bg);color:var(--bd);font-size:18px;cursor:pointer}
 #rep{display:none}[hidden]{display:none!important}
 @media(min-width:700px){.ph{grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}}
 @media(min-width:1000px){
@@ -292,6 +300,7 @@ body.inrec main{padding-bottom:calc(var(--nav) + 100px + env(safe-area-inset-bot
 </main>
 <div id="vw" hidden><div class="vwb"><div class="vwh"><div><b id="vwt"></b><small id="vws"></small></div><button id="vwx" aria-label="Fechar"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg></button></div><div id="vwc"></div></div></div>
 <div id="rep"></div><div id="lb" onclick="this.style.display='none'"><img id="lbi" alt=""></div><div id="toast"></div>
+<div id="wag" hidden><div class="wagb"><div class="vwh"><div><b id="wagt">Enviar no WhatsApp</b><small>Envio das fotos em partes</small></div><button id="wagx" aria-label="Fechar" onclick="if(!GU||GU.i==0||confirm('Ainda faltam fotos para enviar. Fechar mesmo assim?'))fecharGuia()">✕</button></div><div style="padding:16px"><div id="wagm"></div><button class="btn wa big" id="wagb" onclick="partir()"></button></div></div></div>
 <script>
 /* ===== CONFIGURAÇÃO ===== */
 const SUPABASE_URL="https://dndynrhiflfwprwgcczo.supabase.co";
@@ -443,12 +452,8 @@ async function waLista(b){
   const ord=e=>{const i=ORDEM.indexOf(e.tipo_evidencia);return i<0?99:i};
   lista.sort((x,y)=>ord(x)-ord(y));
   const files=await Promise.all(lista.map(async e=>{const {data,error}=await sb.storage.from(B).download(e.storage_path);if(error)throw error;return new File([data],r.codigo_recebimento+"-"+e.tipo_evidencia+".jpg",{type:"image/jpeg"})}));
-  const ps=files.length>MAXF?[files.slice(0,MAXF),files.slice(MAXF)]:[files];
-  if(!navigator.canShare({files:ps[0]}))return waTexto(txt);
-  await navigator.share({files:ps[0],text:txt});
-  if(ps.length>1){toast("Enviada a parte 1. Toque em 📱 Zap de novo para mandar a foto que faltou.");b.textContent="📱 Zap · parte 2";b.disabled=false;
-   b.onclick=async()=>{b.disabled=true;try{await navigator.share({files:ps[1],text:"📦 "+r.codigo_recebimento+" · continuação"});b.textContent="✓ Enviado";b.onclick=null}catch(x){b.disabled=false;if(!(x&&x.name=="AbortError"))toast("Não enviou a parte 2: "+(x.message||x),1)}};return}
-  b.textContent="✓ Enviado"
+  b.disabled=false;b.textContent=t0;
+  envioGuiado(files,txt,r.codigo_recebimento,false) /* o download demorou: pede um toque para abrir o compartilhamento */
  }catch(x){b.disabled=false;b.textContent=t0;if(x&&x.name=="AbortError")return;toast("Não consegui preparar o envio: "+(x.message||x),1)}}
 /* ===== GERAR PDF a partir de uma lista (Painel/Histórico/Início) ===== */
 async function pdfLista(b){
@@ -850,10 +855,11 @@ function copiar(t){if(navigator.clipboard&&isSecureContext)return navigator.clip
 function copiar2(t){const a=document.createElement("textarea");a.value=t;a.style.cssText="position:fixed;opacity:0";document.body.appendChild(a);a.select();let ok=false;try{ok=document.execCommand("copy")}catch(e){}a.remove();return ok}
 /* ===== WHATSAPP =====
    As fotos são baixadas ANTES do toque, e o botão só libera quando estão prontas:
-   assim o compartilhamento abre na hora, sem aviso de "toque de novo".
-   O Android só aceita até 10 fotos por envio: com 11 (avaria), vai em 2 partes. */
+   assim o compartilhamento abre na hora.
+   O celular só aceita até 10 fotos por compartilhamento. Com mais fotos (ex.: 2 bobinas = 17 a 19),
+   o envio vai em partes iguais e uma janela guia o usuário: "Enviar parte 2 de 2" — nenhuma foto fica para trás. */
 const MAXF=10;
-let FT={k:"",p:null,files:null},WAP={k:"",parte:0};
+let FT={k:"",p:null,files:null};
 const podeComp=()=>!!(navigator.canShare&&navigator.share&&navigator.canShare({files:[new File([""],"x.jpg",{type:"image/jpeg"})]}));
 const chaveF=()=>R.id+"|"+EV.map(e=>(E[e.s]||{}).id).join(",");
 function prepFotos(){const k=chaveF();if(FT.k==k&&FT.p)return FT.p;
@@ -866,30 +872,46 @@ function prepFotos(){const k=chaveF();if(FT.k==k&&FT.p)return FT.p;
   .then(f=>{if(FT.k==k){FT.files=f;updWa()}return f})
   .catch(x=>{if(FT.k==k){FT.p=null;FT.files=null;updWa()}throw x});
  return FT.p}
-function partes(){const f=FT.files||[];if(f.length<=MAXF)return [f];return [f.slice(0,MAXF),f.slice(MAXF)]}
+/* divide em partes de no máximo 10, do mesmo tamanho (19 → 10+9, 17 → 9+8) */
+function dividir(f){const n=Math.ceil(f.length/MAXF)||1,t=Math.ceil(f.length/n),o=[];for(let i=0;i<f.length;i+=t)o.push(f.slice(i,i+t));return o.length?o:[f]}
 function updWa(){
  if(!R)return;syncEV();const b=$("#bw"),l=$("#bwl"),w=$("#wn"),n=EV.filter(e=>E[e.s]).length,pend=Object.keys(S).length>0;
  w.textContent="";
  if(n<NF||pend){b.disabled=true;l.textContent="ENVIAR NO WHATSAPP";return}
  if(!podeComp()){b.disabled=false;l.textContent="ENVIAR NO WHATSAPP";return}
  if(FT.k!=chaveF()||!FT.files){b.disabled=true;l.textContent="PREPARANDO FOTOS...";prepFotos().catch(()=>{b.disabled=false;l.textContent="ENVIAR NO WHATSAPP";w.textContent="Não consegui preparar as fotos. Toque para tentar de novo."});return}
- b.disabled=false;const ps=partes();if(WAP.k!=FT.k)WAP={k:FT.k,parte:0};
- if(ps.length>1){l.textContent="ENVIAR NO WHATSAPP · PARTE "+(WAP.parte+1)+" DE "+ps.length;
-  w.textContent=WAP.parte==0?"O WhatsApp aceita até 10 fotos por vez: a 11ª vai na parte 2.":"Falta enviar a foto "+EV.slice(MAXF).map(e=>e.d+" ("+e.l+")").join(", ")+"."}
- else l.textContent="ENVIAR NO WHATSAPP"}
+ b.disabled=false;const np=dividir(FT.files).length;
+ l.textContent=np>1?`ENVIAR NO WHATSAPP · ${FT.files.length} FOTOS`:"ENVIAR NO WHATSAPP";
+ if(np>1)w.textContent=`O celular aceita até 10 fotos por envio: as ${FT.files.length} fotos vão em ${np} partes. O app guia você parte por parte.`}
 function waTexto(t){copiar(t);const u="https://wa.me/?text="+encodeURIComponent(t);const w=window.open(u,"_blank","noopener");if(!w)location.href=u}
+/* envio guiado: compartilha parte por parte; cada parte precisa de um toque (regra do celular) */
+let GU=null;
+function envioGuiado(files,txt,cod,jaComeca){
+ const ps=dividir(files);GU={ps,txt,cod,i:0,tot:files.length};
+ if(!navigator.canShare({files:ps[0]}))return waTexto(txt);
+ if(jaComeca)return partir();
+ guiaTela()}
+function guiaTela(msg){const g=GU,w=$("#wag");if(!g)return;w.hidden=false;
+ const p=g.ps[g.i];
+ $("#wagt").textContent=g.i==0?"Enviar no WhatsApp":`Parte ${g.i} de ${g.ps.length} enviada ✓`;
+ $("#wagm").innerHTML=(msg?`<p class="warn">${esc(msg)}</p>`:"")+(g.ps.length>1?`<p>${g.i==0?`São <b>${g.tot} fotos</b>. O celular só aceita 10 por vez, então vão em <b>${g.ps.length} partes</b>.`:`Agora envie a próxima parte e <b>escolha o mesmo grupo</b>.`}</p>`:"")+
+  `<ol class="wagp">${g.ps.map((x,j)=>{const a=g.ps.slice(0,j).reduce((s,q)=>s+q.length,0);return `<li class="${j<g.i?"ok":j==g.i?"cur":""}"><i>${j<g.i?"✓":j+1}</i>Parte ${j+1}: fotos ${a+1} a ${a+x.length}</li>`}).join("")}</ol>`;
+ $("#wagb").innerHTML=`${ICO.wa} ENVIAR PARTE ${g.i+1} DE ${g.ps.length} (${p.length} fotos)`;if(g.ps.length==1)$("#wagb").innerHTML=`${ICO.wa} ENVIAR ${p.length} FOTOS`}
+function partir(){const g=GU;if(!g)return;const p=g.ps[g.i],a=g.ps.slice(0,g.i).reduce((s,q)=>s+q.length,0);
+ const txt=g.i==0?g.txt:`📦 ${g.cod} · fotos ${a+1} a ${a+p.length} de ${g.tot} (parte ${g.i+1} de ${g.ps.length})`;
+ navigator.share({files:p,text:txt}) /* nada de espera antes daqui: abre na hora */
+  .then(()=>{g.i++;if(g.i>=g.ps.length){fecharGuia();toast(`✓ ${g.tot} fotos enviadas`+(g.ps.length>1?` em ${g.ps.length} partes`:""))}else guiaTela()})
+  .catch(x=>{if(x&&x.name=="AbortError")return guiaTela(g.i?"Envio cancelado. Toque de novo para mandar esta parte.":"");
+   if(g.i==0&&$("#wag").hidden){toast("O compartilhamento não abriu ("+(x.message||x.name||x)+"). Abrindo o WhatsApp só com o texto.",1);return waTexto(g.txt)}
+   guiaTela("Não abriu o compartilhamento. Toque de novo.")})}
+function fecharGuia(){$("#wag").hidden=true}
 function wa(){
  syncEV();
  if(EV.some(e=>!E[e.s]))return toast("Tire as "+NF+" fotos antes de enviar no WhatsApp.",1);
  const t=msg();
  if(!podeComp())return waTexto(t);
  if(FT.k!=chaveF()||!FT.files){updWa();return}
- const ps=partes(),i=WAP.parte%ps.length,files=ps[i];
- const txt=i==0?t:"📦 "+R.codigo_recebimento+" · continuação ("+EV.slice(MAXF).map(e=>e.l).join(", ")+")";
- if(!navigator.canShare({files})){return waTexto(t)}
- navigator.share({files,text:txt}) /* nada de espera antes daqui: abre na hora */
-  .then(()=>{if(ps.length>1){WAP.parte=(i+1)%ps.length;updWa()}})
-  .catch(x=>{if(x&&x.name=="AbortError")return;toast("O compartilhamento não abriu ("+(x.message||x.name||x)+"). Abrindo o WhatsApp só com o texto.",1);waTexto(t)})}
+ envioGuiado(FT.files,t,R.codigo_recebimento,true)}
 function pdf(){
  syncEV();
  montarRelatorio(R,EV.map(e=>({tipo_evidencia:e.s,url:E[e.s]?.url||""})))}
