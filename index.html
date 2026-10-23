@@ -190,7 +190,9 @@ body.inrec main{padding-bottom:calc(var(--nav) + 100px + env(safe-area-inset-bot
  nav button{flex:none;height:42px;flex-direction:row;justify-content:flex-start;gap:10px;font-size:14px;padding:0 12px;border-radius:8px;color:var(--m)}
  nav button i{width:18px;height:18px}nav button:hover{background:var(--bg)}nav button.on{background:var(--tint);color:var(--b)}nav button.on::before{display:none}
  nav button[data-v=out]{margin-top:auto}
+ main{max-width:none}
  body:not(.tlogin) main{margin-left:var(--side);padding:calc(var(--hh,60px) + 22px) 28px 28px}
+ .vwb{max-width:min(1400px,94vw)}
  main{padding:calc(var(--hh,60px) + 22px) 28px 28px}
  #toast{bottom:16px}body.inrec #toast{bottom:16px}
  .wrap{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;align-items:start}aside{position:sticky;top:calc(var(--hh,60px) + 16px)}
@@ -199,6 +201,7 @@ body.inrec main{padding-bottom:calc(var(--nav) + 100px + env(safe-area-inset-bot
  .row .rm b{font-size:16px}
  .ph1 h2{font-size:24px}
 }
+@media(min-width:1600px){.dgrid{grid-template-columns:repeat(3,minmax(0,1fr))}#dl,#hl{grid-template-columns:repeat(3,minmax(0,1fr))}.ph{grid-template-columns:repeat(auto-fill,minmax(190px,1fr))}}
 @media(min-width:1400px){.hlay{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:16px;align-items:start}}
 @media print{body>*:not(#rep){display:none!important}#rep{display:block!important;font-size:12px}#rep .g{display:grid;grid-template-columns:1fr 1fr;gap:10px}#rep figure{margin:0;break-inside:avoid}#rep img{width:100%;height:220px;object-fit:contain;border:1px solid #999}#rep td{padding:3px 8px;border-bottom:1px solid #ccc}#rep h1{font-size:18px;margin:0 0 4px}#rep h3{margin:16px 0 6px}#rep p{margin:0 0 10px;color:#444}#rep table.rt{width:100%;border-collapse:collapse;margin-bottom:8px}#rep th{text-align:left;padding:4px 8px;background:#eee;border-bottom:2px solid #333}#rep tfoot td{font-weight:700;border-top:2px solid #333}#rep tr.sub td{background:#f6f6f6;font-style:italic}#rep .n{text-align:right}}
 </style></head><body>
