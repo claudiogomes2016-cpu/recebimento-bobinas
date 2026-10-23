@@ -1,6 +1,6 @@
 /* Service worker do app Metal Chinês.
    A CADA ATUALIZAÇÃO no GitHub, aumente o número da VERSAO abaixo (v18 → v19 → v20...). */
-const VERSAO = "v43";
+const VERSAO = "v44";
 const CACHE = "metal-chines-" + VERSAO;
 const ARQUIVOS = ["./", "./index.html", "./manifest.webmanifest",
   "./icon-192.png", "./icon-512.png", "./icon-maskable-512.png", "./apple-touch-icon.png"];
@@ -20,7 +20,16 @@ self.addEventListener("activate", e => {
 
 self.addEventListener("fetch", e => {
   const req = e.request, url = new URL(req.url);
-  if (req.method !== "GET" || url.origin !== location.origin) return; // Supabase/CDN: sempre online
+  if (req.method !== "GET") return;
+  // Biblioteca do Supabase (endereço com versão fixa, nunca muda): guarda no aparelho e abre na hora
+  if (url.hostname === "cdn.jsdelivr.net") {
+    e.respondWith(caches.open(CACHE).then(c => c.match(req).then(r => r || fetch(req).then(res => {
+      if (res.ok || res.type === "opaque") c.put(req, res.clone());
+      return res;
+    }))));
+    return;
+  }
+  if (url.origin !== location.origin) return; // Supabase (dados e fotos): sempre online
   if (req.mode === "navigate") {
     e.respondWith(fetch(req)
       .then(r => { if (r.ok) { const cp = r.clone(); caches.open(CACHE).then(c => c.put("./index.html", cp)); } return r; })
