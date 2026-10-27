@@ -73,6 +73,8 @@ label.f input:focus,label.f select:focus,label.f textarea:focus,.opf input:focus
 .seg button[data-fo="Xiamen"].on{background:#fdecec;color:#b71c1c;box-shadow:inset 0 0 0 2px #d32f2f}.seg button[data-fo="Nanshan"].on{background:#e6eefc;color:#0d47a1;box-shadow:inset 0 0 0 2px #1556c0}
 .fsw{width:16px;height:16px;border-radius:4px;flex:none}
 #vwfo button{font-size:13px;padding:0 6px;min-height:40px}#vwfo small{display:none}#vwfo .fsw{width:12px;height:12px}
+.vz{margin:-2px 0 8px;font-size:12.5px;color:var(--wn);font-weight:600;display:flex;align-items:center;gap:8px;flex-wrap:wrap}.vz.ok{color:var(--ok)}.vz.in{color:var(--m);font-weight:500}
+.vz button{border:1px solid #eab0a9;background:#fff;color:var(--er);border-radius:7px;padding:4px 10px;font:inherit;font-size:12px;font-weight:700;cursor:pointer}
 .hint{display:block;margin-top:6px;font-size:12px;font-weight:400;color:var(--m)}
 label.f input:disabled{background:var(--bg);color:var(--m)}
 textarea{min-height:76px}.span{grid-column:1/-1}
@@ -371,7 +373,14 @@ const avQuais=r=>[sim(r.avaria)?"Bobina 1":"",sim(r.avaria_b2)&&r.tem_bobina2!==
 const dBR=d=>new Date(d).toLocaleDateString("pt-BR");
 let sb,R,E={},S={},H=[],tt,U=null,setpw=/type=(invite|recovery)/.test(location.hash);
 function toast(m,er){const t=$("#toast");t.textContent=m;t.className=er?"er":"";t.style.display="block";clearTimeout(tt);tt=setTimeout(()=>t.style.display="none",er?6000:3000)}
-function go(v){$$("main>section").forEach(s=>s.hidden=s.id!=v);document.body.classList.toggle("inrec",v=="rec");$$("nav button").forEach(b=>b.classList.toggle("on",b.dataset.v==(v=="rec"?"home":v)));if(v=="home"){loadHome();const b=$("#bn");b.classList.remove("mexe");void b.offsetWidth;b.classList.add("mexe")}if(v=="hist")loadHist();if(v=="dash")loadDash();scrollTo(0,0)}
+/* recebimento aberto por engano: criado aqui, sem fotos, sem fila e sem dados → apaga ao sair da tela */
+async function descartaVazio(){const r=R;if(!r||!NOVOS.has(String(r.id))||r.status=="CONCLUIDO")return;
+ if(Object.keys(E).length||Object.keys(S).length||String(r.nota_fiscal||"").trim()||r.avaria!=null||r.clima||String(r.observacoes||"").trim())return;
+ if((await filaTodos()).some(it=>it.rec==r.id))return;
+ const {count}=await sb.from(TE).select("id",{count:"exact",head:true}).eq("recebimento_id",r.id);if(count)return;
+ const {data,error}=await sb.from(T).delete().eq("id",r.id).eq("status","EM_ANDAMENTO").select("id");
+ if(!error&&data&&data.length){NOVOS.delete(String(r.id));toast("Recebimento "+r.codigo_recebimento+" estava vazio e foi descartado");if(!$("#home").hidden)loadHome()}}
+function go(v){if(v!="rec"&&!$("#rec").hidden&&R)descartaVazio();$$("main>section").forEach(s=>s.hidden=s.id!=v);document.body.classList.toggle("inrec",v=="rec");$$("nav button").forEach(b=>b.classList.toggle("on",b.dataset.v==(v=="rec"?"home":v)));if(v=="home"){loadHome();const b=$("#bn");b.classList.remove("mexe");void b.offsetWidth;b.classList.add("mexe")}if(v=="hist")loadHist();if(v=="dash")loadDash();scrollTo(0,0)}
 $("#dh").onchange=async()=>{
  const v=$("#dh").value;if(!v)return render();
  const novo=new Date(v);if(isNaN(novo))return render();
@@ -380,6 +389,7 @@ $("#dh").onchange=async()=>{
 };
 $$("nav button").forEach(b=>b.onclick=async()=>{
  if(b.dataset.v!="out")return go(b.dataset.v);
+ if(!$("#rec").hidden&&R)await descartaVazio();
  try{await comPrazo(sb.auth.signOut(),8000)}catch(e){} /* mesmo com sinal ruim, sai do app localmente */
  U=null;R=null;showAuth("login")
 });
@@ -409,6 +419,7 @@ async function loadHome(auto){
  const accR=acc||[],accBob=accR.reduce((s,r)=>s+(+r.quantidade_bobinas||0),0),accAv=accR.reduce((s,r)=>s+avB(r),0);
  $("#ac1").textContent=accBob;$("#ac2").textContent=accAv;$("#ac3").textContent=accBob?"("+pct(accAv,accBob)+")":"";}
  const {data:d2}=await sb.from(T).select("*").eq("status","EM_ANDAMENTO").order("data_hora",{ascending:false}).limit(20);
+ if(d2&&d2.length){const {data:evs}=await sb.from(TE).select("recebimento_id").in("recebimento_id",d2.map(r=>r.id));const cnt={};(evs||[]).forEach(e=>cnt[e.recebimento_id]=(cnt[e.recebimento_id]||0)+1);d2.forEach(r=>r._nf=cnt[r.id]||0)}
  $("#dcount").textContent=(d2||[]).length?(d2.length+" aberto"+(d2.length>1?"s":"")):"";
  $("#drafts").innerHTML=(d2||[]).map(rowH).join("")||'<div class="card vazio" style="text-align:center">✓ Nenhum recebimento em andamento.</div>';bindRows("#drafts");
  /* alerta: recebimento em andamento parado há mais de 2h */
@@ -416,12 +427,12 @@ async function loadHome(auto){
  if(parados.length){
   const p=parados[0],hrs=Math.floor(p.ms/3600000),min=Math.round((p.ms%3600000)/60000),hhmm=new Date(p.r.data_hora).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}),
    extra=parados.length>1?` (+${parados.length-1} outro${parados.length>2?"s":""} também parado${parados.length>2?"s":""})`:"";
-  $("#halerttxt").innerHTML=`<b>${esc(p.r.codigo_recebimento)}</b> está em andamento há ${hrs}h${String(min).padStart(2,"0")}min (aberto às ${hhmm}). Não esqueça de finalizar.${extra}`;
+  $("#halerttxt").innerHTML=`<b>${esc(p.r.codigo_recebimento)}</b> está em andamento há ${hrs}h${String(min).padStart(2,"0")}min (aberto às ${hhmm}). `+(p.r._nf===0?"Não tem nenhuma foto: se foi aberto por engano, toque em Descartar abaixo.":p.r._nf>=totalFotos(p.r)?"As fotos estão completas: só falta FINALIZAR.":"Não esqueça de finalizar.")+extra;
   $("#halert").hidden=false;
  }else $("#halert").hidden=true;
 }
-function rowH(r){const c=r.status=="CONCLUIDO",nav=avB(r),av=nav>0;return `<div class="row"><div class="rm" data-id="${r.id}" data-c="${c?1:0}"><div class="top"><b>${esc(r.codigo_recebimento)}</b><span class="pill ${c?"c":"a"}">${c?"Concluído":"Em andamento · "+hmin(Date.now()-new Date(r.data_hora))}</span></div><small>${dt(r.data_hora)} · ${esc(r.transportadora||"—")}${r.nota_fiscal?" · NF "+esc(r.nota_fiscal):c?' · <span class="warn">sem NF</span>':""}${r.usuario?" · "+esc(r.usuario):""}</small><div class="tags">${FORN[r.fornecedor]?`<span class="tag">${fdot(r.fornecedor)}${r.fornecedor}</span>`:""}<span class="tag">${r.quantidade_bobinas||0} bob.</span>${av?`<button type="button" class="tag a" data-av="${r.id}">${ICO.view} Avaria${nav>1?" ×2":""}</button>`:""}${r.clima&&CL[r.clima]?"<span>"+CL[r.clima][0]+"</span>":""}<span class="tag">${diaNoite(r.data_hora)}</span></div></div><div class="ra"><button data-vi="${r.id}">${ICO.view} Ver</button><button data-wa="${r.id}" ${c?"":"disabled"}>${ICO.wa} Zap</button><button data-pdf="${r.id}" ${c?"":"disabled"}>${ICO.pdf} PDF</button></div></div>`}
-function bindRows(sel){$$(sel+" .rm").forEach(e=>e.onclick=()=>e.dataset.c=="1"?ver(e.dataset.id):openRec(e.dataset.id));$$(sel+" [data-vi]").forEach(b=>b.onclick=()=>ver(b.dataset.vi));$$(sel+" [data-av]").forEach(b=>b.onclick=ev=>{ev.stopPropagation();ver(b.dataset.av,"avaria")});$$(sel+" [data-wa]").forEach(b=>b.onclick=()=>waLista(b));$$(sel+" [data-pdf]").forEach(b=>b.onclick=()=>pdfLista(b));$$(sel+" [data-ed]").forEach(b=>b.onclick=()=>editar(b.dataset.ed));$$(sel+" [data-dl]").forEach(b=>b.onclick=()=>excluir(b.dataset.dl,b.dataset.cd))}
+function rowH(r){const c=r.status=="CONCLUIDO",nav=avB(r),av=nav>0;return `<div class="row"><div class="rm" data-id="${r.id}" data-c="${c?1:0}"><div class="top"><b>${esc(r.codigo_recebimento)}</b><span class="pill ${c?"c":"a"}">${c?"Concluído":"Em andamento · "+hmin(Date.now()-new Date(r.data_hora))}</span></div>${!c&&r._nf!=null?(r._nf==0?`<div class="vz">⚠️ Nenhuma foto — provavelmente aberto por engano. <button type="button" data-dl="${r.id}" data-cd="${esc(r.codigo_recebimento)}">Descartar</button></div>`:r._nf>=totalFotos(r)?`<div class="vz ok">✓ ${r._nf} fotos salvas — só falta tocar em FINALIZAR</div>`:`<div class="vz in">${r._nf} de ${totalFotos(r)} fotos salvas</div>`):""}<small>${dt(r.data_hora)} · ${esc(r.transportadora||"—")}${r.nota_fiscal?" · NF "+esc(r.nota_fiscal):c?' · <span class="warn">sem NF</span>':""}${r.usuario?" · "+esc(r.usuario):""}</small><div class="tags">${FORN[r.fornecedor]?`<span class="tag">${fdot(r.fornecedor)}${r.fornecedor}</span>`:""}<span class="tag">${r.quantidade_bobinas||0} bob.</span>${av?`<button type="button" class="tag a" data-av="${r.id}">${ICO.view} Avaria${nav>1?" ×2":""}</button>`:""}${r.clima&&CL[r.clima]?"<span>"+CL[r.clima][0]+"</span>":""}<span class="tag">${diaNoite(r.data_hora)}</span></div></div><div class="ra"><button data-vi="${r.id}">${ICO.view} Ver</button><button data-wa="${r.id}" ${c?"":"disabled"}>${ICO.wa} Zap</button><button data-pdf="${r.id}" ${c?"":"disabled"}>${ICO.pdf} PDF</button></div></div>`}
+function bindRows(sel){$$(sel+" .rm").forEach(e=>e.onclick=()=>e.dataset.c=="1"?ver(e.dataset.id):openRec(e.dataset.id));$$(sel+" [data-vi]").forEach(b=>b.onclick=()=>ver(b.dataset.vi));$$(sel+" [data-av]").forEach(b=>b.onclick=ev=>{ev.stopPropagation();ver(b.dataset.av,"avaria")});$$(sel+" [data-wa]").forEach(b=>b.onclick=()=>waLista(b));$$(sel+" [data-pdf]").forEach(b=>b.onclick=()=>pdfLista(b));$$(sel+" [data-ed]").forEach(b=>b.onclick=()=>editar(b.dataset.ed));$$(sel+" [data-dl]").forEach(b=>b.onclick=ev=>{ev.stopPropagation();excluir(b.dataset.dl,b.dataset.cd)})}
 function olho(b){const i=b.previousElementSibling,v=i.type=="password";i.type=v?"text":"password";b.classList.toggle("on",v);b.setAttribute("aria-label",v?"Esconder senha":"Mostrar senha");b.innerHTML=v?ICO.eyeOff:ICO.eye}
 $$(".eye").forEach(b=>b.innerHTML=ICO.eye);
 /* ===== VISUALIZAR (fotos e dados, sem editar) ===== */
@@ -704,13 +715,15 @@ $("#q").oninput=drawHist;
 $$("#steps a").forEach(a=>a.onclick=e=>{e.preventDefault();$(a.getAttribute("href")).scrollIntoView({behavior:"smooth",block:"start"})});
 $$("#hf button").forEach(b=>b.onclick=()=>{HF=b.dataset.hf;$$("#hf button").forEach(x=>x.classList.toggle("on",x==b));drawHist()});
 
-async function newRec(){
+let CRIANDO=0;const NOVOS=new Set(); /* recebimentos criados neste aparelho nesta sessão */
+async function newRec(){if(CRIANDO)return;CRIANDO=1;const bn=$("#bn");bn.disabled=true;try{await newRec2()}finally{CRIANDO=0;bn.disabled=false}}
+async function newRec2(){
  const d=new Date(),p=(n,l=2)=>String(n).padStart(l,"0"),ymd=""+d.getFullYear()+p(d.getMonth()+1)+p(d.getDate());
  for(let k=0;k<4;k++){
   const {data}=await sb.from(T).select("codigo_recebimento").like("codigo_recebimento",`REC-${ymd}-%`).order("codigo_recebimento",{ascending:false}).limit(1);
   const n=data&&data[0]?+data[0].codigo_recebimento.slice(-3)+1:1;
   const {data:r,error}=await sb.from(T).insert({codigo_recebimento:`REC-${ymd}-${p(n,3)}`,data_hora:d.toISOString(),origem:"China",transportadora:"Poloni",usuario:nomeU(),quantidade_bobinas:1,status:"EM_ANDAMENTO"}).select().single();
-  if(!error)return openRec(r.id);if(error.code!="23505")return toast("Erro ao criar: "+error.message,1)}
+  if(!error){NOVOS.add(String(r.id));return openRec(r.id)}if(error.code!="23505")return toast("Erro ao criar: "+error.message,1)}
 }
 async function openRec(id){
  const {data:r,error}=await sb.from(T).select("*").eq("id",id).single();if(error)return toast(error.message,1);
