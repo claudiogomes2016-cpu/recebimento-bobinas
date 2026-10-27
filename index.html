@@ -68,6 +68,11 @@ h2{font-size:15px;margin:0 0 12px;color:var(--bd);overflow-wrap:anywhere;font-we
 .form{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(200px,100%),1fr));gap:12px}
 label.f{display:block;font-size:12.5px;color:var(--m);min-width:0;font-weight:600}label.f input,label.f select,label.f textarea{display:block;width:100%;min-width:0;margin-top:5px;padding:11px 12px;font:inherit;font-size:16px;font-weight:400;color:var(--t);border:1px solid var(--ln);border-radius:10px;background:#fff;transition:border-color .15s,box-shadow .15s}
 label.f input:focus,label.f select:focus,label.f textarea:focus,.opf input:focus{outline:0;border-color:var(--b);box-shadow:0 0 0 3px rgba(17,64,254,.15)}
+.fdot{display:inline-block;width:10px;height:10px;border-radius:3px;vertical-align:-1px;margin-right:5px}
+.seg button[data-fo]{display:flex;align-items:center;justify-content:center;gap:6px;line-height:1.15}.seg button[data-fo] small{display:block;font-size:11px;font-weight:500;color:var(--m)}
+.seg button[data-fo="Xiamen"].on{background:#fdecec;color:#b71c1c;box-shadow:inset 0 0 0 2px #d32f2f}.seg button[data-fo="Nanshan"].on{background:#e6eefc;color:#0d47a1;box-shadow:inset 0 0 0 2px #1556c0}
+.fsw{width:16px;height:16px;border-radius:4px;flex:none}
+#vwfo button{font-size:13px;padding:0 6px;min-height:40px}#vwfo small{display:none}#vwfo .fsw{width:12px;height:12px}
 .hint{display:block;margin-top:6px;font-size:12px;font-weight:400;color:var(--m)}
 label.f input:disabled{background:var(--bg);color:var(--m)}
 textarea{min-height:76px}.span{grid-column:1/-1}
@@ -243,12 +248,14 @@ body.inrec main{padding-bottom:calc(var(--nav) + 100px + env(safe-area-inset-bot
  <div class="ph1"><div><h2>Painel de recebimentos</h2><p id="dsub">Indicadores do período selecionado</p></div>
   <div class="bx"><button class="btn ghost sm" id="dcsv" onclick="csvPeriodo()">⬇ Exportar planilha</button><button class="btn ghost sm bra" id="bra" onclick="abrirAvarias()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>Relatório de avarias</button></div></div>
  <div class="chips" id="per"><button data-per="hoje">Hoje</button><button data-per="7" class="on">7 dias</button><button data-per="30">30 dias</button><button data-per="mes">Mês atual</button><button data-per="tudo">Tudo</button><button data-per="custom">Período</button></div>
+ <div class="chips" id="fo"><button data-fo="" class="on">Todos os fornecedores</button><button data-fo="Xiamen"><i class="fdot" style="background:#d32f2f"></i>Xiamen</button><button data-fo="Nanshan"><i class="fdot" style="background:#1556c0"></i>Nanshan</button></div>
  <div class="dates" id="dts" hidden><label class="f">De<input type="date" id="d1"></label><label class="f">Até<input type="date" id="d2"></label></div>
  <div class="kpis" id="kp"></div>
  <div class="dgrid">
   <div class="card dspan"><h3>Leitura do período <small>gerada automaticamente</small></h3><ul class="ins" id="ins"></ul></div>
   <div class="card dspan"><h3 id="evt">Recebimentos por dia</h3><div class="leg"><span><i class="c1"></i>Sem avaria</span><span><i class="c2"></i>Com avaria</span><span><i class="c3"></i>Em andamento</span></div><div class="cols" id="ch"></div></div>
   <div class="card"><h3>Tempo de ciclo <small>abertura → finalização</small></h3><div id="g_tc"></div></div>
+  <div class="card"><h3>Por fornecedor <small>taxa de avaria por bobina</small></h3><div id="g_fo"></div></div>
   <div class="card"><h3>Por transportadora</h3><div id="g_tr"></div></div>
   <div class="card"><h3>Por usuário</h3><div id="g_us"></div></div>
   <div class="card"><h3>Por origem</h3><div id="g_or"></div></div>
@@ -260,8 +267,8 @@ body.inrec main{padding-bottom:calc(var(--nav) + 100px + env(safe-area-inset-bot
 
 <section id="hist" hidden>
  <div class="ph1"><div><h2>Histórico</h2><p id="hsub">Últimos 300 recebimentos</p></div></div>
- <div class="chips" id="hf"><button data-hf="" class="on">Todos</button><button data-hf="and">Em andamento</button><button data-hf="av">Com avaria</button><button data-hf="nf">Sem NF</button></div>
- <label class="f" style="margin-bottom:12px"><input id="q" type="search" placeholder="Buscar por código, data, transportadora, usuário ou NF"></label>
+ <div class="chips" id="hf"><button data-hf="" class="on">Todos</button><button data-hf="and">Em andamento</button><button data-hf="av">Com avaria</button><button data-hf="nf">Sem NF</button><button data-hf="xi">Xiamen</button><button data-hf="na">Nanshan</button><button data-hf="sf">Sem fornecedor</button></div>
+ <label class="f" style="margin-bottom:12px"><input id="q" type="search" placeholder="Buscar por código, data, fornecedor, transportadora, usuário ou NF"></label>
  <div id="hl"></div>
 </section>
 
@@ -275,6 +282,7 @@ body.inrec main{padding-bottom:calc(var(--nav) + 100px + env(safe-area-inset-bot
   <label class="f">Nota fiscal<input data-f="nota_fiscal" placeholder="Número da NF" inputmode="numeric"></label>
   <input id="usr" type="hidden">
   <div class="f opf span">Origem<div class="seg" data-op="origem"><button type="button" data-o="China">CHINA</button><button type="button" data-o="">OUTROS</button></div><input data-f="origem" placeholder="Digite a origem" hidden></div>
+  <div class="f opf span" id="fforn">Fornecedor<div class="seg" data-fseg><button type="button" data-fo="Xiamen"><span class="fsw" style="background:#d32f2f"></span><span>XIAMEN<small>embalagem vermelha</small></span></button><button type="button" data-fo="Nanshan"><span class="fsw" style="background:#1556c0"></span><span>NANSHAN<small>embalagem azul</small></span></button></div><small class="hint" id="fhint">Identifique pela cor da embalagem da bobina.</small></div>
   <div class="f opf span">Quantas bobinas neste recebimento?<div class="seg"><button type="button" data-b2="0">1 BOBINA</button><button type="button" data-b2="1">2 BOBINAS</button></div><small class="hint">Define quantas fotos serão pedidas: 1 bobina = 10 fotos · 2 bobinas = 17 fotos (+1 por avaria).</small></div>
   <div class="f opf span">Transportadora<div class="seg" data-op="transportadora"><button type="button" data-o="Poloni">POLONI</button><button type="button" data-o="">OUTROS</button></div><input data-f="transportadora" placeholder="Digite o nome da transportadora" hidden></div>
  </div></div>
@@ -343,6 +351,11 @@ function syncEV(){
  if(R&&R.tem_bobina2===true){out=out.concat(B2);if(R&&R.avaria_b2===true)out.push(AVF2)}
  EV=out.map((e,i)=>({...e,d:String(i+1).padStart(2,"0"),f:e.s}));NF=EV.length
 }
+/* fornecedor: identificado pela cor da embalagem da bobina */
+const FORN={Xiamen:{cor:"#d32f2f",emb:"vermelha",ico:"🟥"},Nanshan:{cor:"#1556c0",emb:"azul",ico:"🟦"}};
+const fornTxt=r=>r&&FORN[r.fornecedor]?r.fornecedor+" (embalagem "+FORN[r.fornecedor].emb+")":"Não informado";
+const fdot=f=>FORN[f]?`<i class="fdot" style="background:${FORN[f].cor}"></i>`:"";
+const temForn=r=>!!r&&("fornecedor" in r); /* a coluna só existe depois de rodar supabase/fornecedor.sql */
 const CL={sol:["☀️","Sol"],parcial:["⛅","Parcialmente nublado"],nublado:["☁️","Nublado"],chuva:["🌧️","Chuva"],noite:["🌙","Noite"]};
 /* período (dia/noite) — calculado sozinho a partir do horário do recebimento, ninguém precisa lançar */
 const diaNoite=dh=>{if(!dh)return"";const h=new Date(dh).getHours();return(h<6||h>=18)?"Noite":"Dia"};
@@ -407,7 +420,7 @@ async function loadHome(auto){
   $("#halert").hidden=false;
  }else $("#halert").hidden=true;
 }
-function rowH(r){const c=r.status=="CONCLUIDO",nav=avB(r),av=nav>0;return `<div class="row"><div class="rm" data-id="${r.id}" data-c="${c?1:0}"><div class="top"><b>${esc(r.codigo_recebimento)}</b><span class="pill ${c?"c":"a"}">${c?"Concluído":"Em andamento · "+hmin(Date.now()-new Date(r.data_hora))}</span></div><small>${dt(r.data_hora)} · ${esc(r.transportadora||"—")}${r.nota_fiscal?" · NF "+esc(r.nota_fiscal):c?' · <span class="warn">sem NF</span>':""}${r.usuario?" · "+esc(r.usuario):""}</small><div class="tags"><span class="tag">${r.quantidade_bobinas||0} bob.</span>${av?`<button type="button" class="tag a" data-av="${r.id}">${ICO.view} Avaria${nav>1?" ×2":""}</button>`:""}${r.clima&&CL[r.clima]?"<span>"+CL[r.clima][0]+"</span>":""}<span class="tag">${diaNoite(r.data_hora)}</span></div></div><div class="ra"><button data-vi="${r.id}">${ICO.view} Ver</button><button data-wa="${r.id}" ${c?"":"disabled"}>${ICO.wa} Zap</button><button data-pdf="${r.id}" ${c?"":"disabled"}>${ICO.pdf} PDF</button></div></div>`}
+function rowH(r){const c=r.status=="CONCLUIDO",nav=avB(r),av=nav>0;return `<div class="row"><div class="rm" data-id="${r.id}" data-c="${c?1:0}"><div class="top"><b>${esc(r.codigo_recebimento)}</b><span class="pill ${c?"c":"a"}">${c?"Concluído":"Em andamento · "+hmin(Date.now()-new Date(r.data_hora))}</span></div><small>${dt(r.data_hora)} · ${esc(r.transportadora||"—")}${r.nota_fiscal?" · NF "+esc(r.nota_fiscal):c?' · <span class="warn">sem NF</span>':""}${r.usuario?" · "+esc(r.usuario):""}</small><div class="tags">${FORN[r.fornecedor]?`<span class="tag">${fdot(r.fornecedor)}${r.fornecedor}</span>`:""}<span class="tag">${r.quantidade_bobinas||0} bob.</span>${av?`<button type="button" class="tag a" data-av="${r.id}">${ICO.view} Avaria${nav>1?" ×2":""}</button>`:""}${r.clima&&CL[r.clima]?"<span>"+CL[r.clima][0]+"</span>":""}<span class="tag">${diaNoite(r.data_hora)}</span></div></div><div class="ra"><button data-vi="${r.id}">${ICO.view} Ver</button><button data-wa="${r.id}" ${c?"":"disabled"}>${ICO.wa} Zap</button><button data-pdf="${r.id}" ${c?"":"disabled"}>${ICO.pdf} PDF</button></div></div>`}
 function bindRows(sel){$$(sel+" .rm").forEach(e=>e.onclick=()=>e.dataset.c=="1"?ver(e.dataset.id):openRec(e.dataset.id));$$(sel+" [data-vi]").forEach(b=>b.onclick=()=>ver(b.dataset.vi));$$(sel+" [data-av]").forEach(b=>b.onclick=ev=>{ev.stopPropagation();ver(b.dataset.av,"avaria")});$$(sel+" [data-wa]").forEach(b=>b.onclick=()=>waLista(b));$$(sel+" [data-pdf]").forEach(b=>b.onclick=()=>pdfLista(b));$$(sel+" [data-ed]").forEach(b=>b.onclick=()=>editar(b.dataset.ed));$$(sel+" [data-dl]").forEach(b=>b.onclick=()=>excluir(b.dataset.dl,b.dataset.cd))}
 function olho(b){const i=b.previousElementSibling,v=i.type=="password";i.type=v?"text":"password";b.classList.toggle("on",v);b.setAttribute("aria-label",v?"Esconder senha":"Mostrar senha");b.innerHTML=v?ICO.eyeOff:ICO.eye}
 $$(".eye").forEach(b=>b.innerHTML=ICO.eye);
@@ -424,11 +437,16 @@ async function ver(id,foco){
  const c=r.status=="CONCLUIDO";
  $("#vwt").textContent=r.codigo_recebimento;$("#vws").textContent=dt(r.data_hora)+" · "+(c?"Concluído":"Em andamento");
  const dados=[["Usuário",r.usuario],["Origem",r.origem],["Transportadora",r.transportadora],["Quantidade",(r.quantidade_bobinas||0)+" bobina(s)"],["Avaria",avB(r)?avQuais(r)+" ("+avB(r)+" bobina"+(avB(r)>1?"s":"")+")":r.avaria==null?"—":"NÃO"],["Clima",r.clima&&CL[r.clima]?CL[r.clima][0]+" "+CL[r.clima][1]:"—"],["Período",diaNoite(r.data_hora)],["Finalizado em",r.finalized_at?dt(r.finalized_at):"—"],["Observações",r.observacoes]];
- $("#vwc").innerHTML=`<div class="card"><dl><dt>Nota fiscal</dt><dd><span class="nfEdit"><input id="vwnf" value="${esc(r.nota_fiscal||"")}" placeholder="Número da NF" inputmode="numeric"><button type="button" id="vwnfSalvar" class="btn sm">Salvar</button></span><small id="vwnfSt" class="st"></small></dd>${dados.map(([k,v])=>`<dt>${k}</dt><dd>${esc(v||"—")}</dd>`).join("")}</dl></div>
+ $("#vwc").innerHTML=`<div class="card"><dl><dt>Nota fiscal</dt><dd><span class="nfEdit"><input id="vwnf" value="${esc(r.nota_fiscal||"")}" placeholder="Número da NF" inputmode="numeric"><button type="button" id="vwnfSalvar" class="btn sm">Salvar</button></span><small id="vwnfSt" class="st"></small></dd>${temForn(r)?`<dt>Fornecedor</dt><dd><div class="seg" id="vwfo">${["Xiamen","Nanshan"].map(f=>`<button type="button" data-fo="${f}" class="${r.fornecedor==f?"on":""}"><span class="fsw" style="background:${FORN[f].cor}"></span><span>${f.toUpperCase()}<small>embalagem ${FORN[f].emb}</small></span></button>`).join("")}</div><small id="vwfoSt" class="st"></small></dd>`:""}${dados.map(([k,v])=>`<dt>${k}</dt><dd>${esc(v||"—")}</dd>`).join("")}</dl></div>
   <div class="card"><h3>Fotos (${lista.length})</h3>${lista.length?`<div class="vg">${lista.map((e,i)=>`<figure data-u="${esc(e.url)}" class="${e.tipo_evidencia=="avaria"||e.tipo_evidencia=="avaria-b2"?"av":""}">${e.url?`<img src="${esc(e.url)}" alt="${esc(NOMES[e.tipo_evidencia]||e.tipo_evidencia)}" loading="lazy">`:'<div class="sf">Foto indisponível</div>'}<figcaption>${esc(NOMES[e.tipo_evidencia]||e.tipo_evidencia)}</figcaption></figure>`).join("")}</div>`:'<div class="vazio">Nenhuma foto registrada.</div>'}</div>
   <div class="acts2"><button class="btn ghost" id="vwe">${ICO.edit} ${c?"Editar (reabre)":"Continuar"}</button><button class="btn" id="vwf">Fechar</button></div>
   <button class="btn del sm" id="vwd" style="margin-top:10px">${ICO.trash} Excluir recebimento</button>`;
  $$("#vwc figure").forEach(f=>f.onclick=()=>{if(f.dataset.u){$("#lbi").src=f.dataset.u;$("#lb").style.display="flex"}});
+ $$("#vwfo [data-fo]").forEach(bt=>bt.onclick=async()=>{const f=bt.dataset.fo,st=$("#vwfoSt");st.textContent="Salvando...";st.className="st";
+  const {data:up,error}=await sb.from(T).update({fornecedor:f}).eq("id",id).select("id");
+  if(error||!up||!up.length){st.textContent="Não salvou: "+(error?error.message:"o banco bloqueou a alteração");st.className="st er";return}
+  r.fornecedor=f;$$("#vwfo [data-fo]").forEach(x=>x.classList.toggle("on",x.dataset.fo==f));st.textContent="✓ Salvo";st.className="st ok";
+  [H,DD].forEach(L=>(L||[]).forEach(x=>{if(String(x.id)==String(id))x.fornecedor=f}))});
  $("#vwe").onclick=()=>{fecharVer();editar(id)};$("#vwf").onclick=fecharVer;$("#vwd").onclick=()=>{fecharVer();excluir(id,r.codigo_recebimento)};
  $("#vwnfSalvar").onclick=async()=>{
   const v=$("#vwnf").value.trim(),btn=$("#vwnfSalvar"),st=$("#vwnfSt"),t0=btn.textContent;
@@ -471,7 +489,7 @@ async function pdfLista(b){
   montarRelatorio(r,lista);b.disabled=false;b.textContent=t0
  }catch(x){b.disabled=false;b.textContent=t0;toast("Não consegui gerar o PDF: "+(x.message||x),1)}}
 function montarRelatorio(r,lista){
- const rows=[["Código",r.codigo_recebimento],["Data / hora",dt(r.data_hora)],["Usuário",r.usuario],["Nota fiscal",r.nota_fiscal||"—"],["Origem",r.origem],["Transportadora",r.transportadora],["Quantidade",r.quantidade_bobinas],["Avaria (bobina 1)",r.avaria?"SIM":"NÃO"]];
+ const rows=[["Código",r.codigo_recebimento],["Data / hora",dt(r.data_hora)],["Usuário",r.usuario],["Nota fiscal",r.nota_fiscal||"—"],["Fornecedor",fornTxt(r)],["Origem",r.origem],["Transportadora",r.transportadora],["Quantidade",r.quantidade_bobinas],["Avaria (bobina 1)",r.avaria?"SIM":"NÃO"]];
  if(r.tem_bobina2)rows.push(["Avaria (bobina 2)",r.avaria_b2?"SIM":"NÃO"]);
  rows.push(["Clima",r.clima&&CL[r.clima]?CL[r.clima][1]+(r.clima_data_hora?" ("+dt(r.clima_data_hora)+")":""):"—"],["Período",diaNoite(r.data_hora)],["Finalizado em",r.finalized_at?dt(r.finalized_at):"—"],["Observações",r.observacoes]);
  $("#rep").innerHTML=`<h1>Recebimento de Bobina Metálica</h1><table>${rows.map(([k,v])=>`<tr><td><b>${k}</b></td><td>${esc(v||"—")}</td></tr>`).join("")}</table><h3>Evidências fotográficas</h3><div class="g">${lista.map((e,i)=>`<figure><img src="${esc(e.url)}" crossorigin="anonymous"><figcaption>${String(i+1).padStart(2,"0")} | ${esc(NOMES[e.tipo_evidencia]||e.tipo_evidencia)}</figcaption></figure>`).join("")}</div>`;
@@ -501,7 +519,9 @@ async function excluir(id,cod){
   if(!$("#hist").hidden)loadHist();else if(!$("#dash").hidden)loadDash();else go("home")
  }catch(x){toast("Não excluiu: "+(x.message||x),1)}}
 /* ===== PAINEL ===== */
-let DP="7",DD=[],DPV=null,DFt=null;
+let DP="7",DD=[],DPV=null,DFt=null,DDA=[],DPVA=null,DFO="";
+/* filtro de fornecedor do painel: vale para indicadores, gráficos, leitura e planilha */
+const doForn=L=>L&&DFO?L.filter(r=>r.fornecedor==DFO):L;
 const dia=d=>{const x=new Date(d);return x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0")+"-"+String(x.getDate()).padStart(2,"0")};
 /* "Tudo": começa no primeiro recebimento já registrado (descoberto em loadDash) */
 let TUDO0=null;
@@ -513,13 +533,13 @@ function periodo(){const h=new Date();h.setHours(0,0,0,0);let a=new Date(h),b=ne
  else if(DP=="custom"){const x=$("#d1").value,y=$("#d2").value;if(x)a=new Date(x+"T00:00");if(y){b=new Date(y+"T00:00");b.setDate(b.getDate()+1)}}
  return [a,b]}
 async function loadDash(){
- if(!sb)return;let [a,b]=periodo();$("#kp").innerHTML='<div class="vazio">Carregando...</div>';$("#ch").innerHTML="";$("#ins").innerHTML="";["g_tr","g_or","g_us","g_cl","g_hr","g_tc"].forEach(id=>$("#"+id).innerHTML="");$("#dl").innerHTML="";
+ if(!sb)return;let [a,b]=periodo();$("#kp").innerHTML='<div class="vazio">Carregando...</div>';$("#ch").innerHTML="";$("#ins").innerHTML="";["g_fo","g_tr","g_or","g_us","g_cl","g_hr","g_tc"].forEach(id=>$("#"+id).innerHTML="");$("#dl").innerHTML="";
  try{
-  DD=await buscarTudo(()=>{let q=sb.from(T).select("*").lt("data_hora",b.toISOString()).order("data_hora",{ascending:false});return DP=="tudo"?q:q.gte("data_hora",a.toISOString())});
-  if(DP=="tudo"&&DD.length){const p0=new Date(DD[DD.length-1].data_hora);p0.setHours(0,0,0,0);TUDO0=p0;a=p0}
+  DDA=await buscarTudo(()=>{let q=sb.from(T).select("*").lt("data_hora",b.toISOString()).order("data_hora",{ascending:false});return DP=="tudo"?q:q.gte("data_hora",a.toISOString())});
+  if(DP=="tudo"&&DDA.length){const p0=new Date(DDA[DDA.length-1].data_hora);p0.setHours(0,0,0,0);TUDO0=p0;a=p0}
   /* período anterior de mesmo tamanho, para comparar (ex.: 7 dias × 7 dias anteriores) */
-  DPV=null;if(DP!="tudo"){const a0=new Date(a.getTime()-(b-a));try{DPV=await buscarTudo(()=>sb.from(T).select("data_hora,status,finalized_at,quantidade_bobinas,avaria,avaria_b2,tem_bobina2").gte("data_hora",a0.toISOString()).lt("data_hora",a.toISOString()))}catch(e){DPV=null}}
-  DFt=null;drawDash(a,b)
+  DPVA=null;if(DP!="tudo"){const a0=new Date(a.getTime()-(b-a));try{DPVA=await buscarTudo(()=>sb.from(T).select("*").gte("data_hora",a0.toISOString()).lt("data_hora",a.toISOString()))}catch(e){DPVA=null}}
+  DD=doForn(DDA);DPV=doForn(DPVA);DFt=null;drawDash(a,b)
  }catch(x){console.error("Painel:",x);$("#kp").innerHTML=`<div class="vazio" style="grid-column:1/-1">⚠️ Não consegui carregar o painel: ${esc(x.message||x)}. <button class="btn ghost sm" onclick="loadDash()" style="width:auto;display:inline-flex;margin-top:8px">Tentar de novo</button></div>`}}
 const pct=(a,b,d=1)=>b?(a/b*100).toFixed(d).replace(".",",")+"%":"—";
 function hmin(ms){const m=Math.round(ms/60000);return m<60?m+" min":Math.floor(m/60)+"h "+String(m%60).padStart(2,"0")+"min"}
@@ -527,7 +547,7 @@ function hmin(ms){const m=Math.round(ms/60000);return m<60?m+" min":Math.floor(m
 function hbars(el,campo,rot){const cont={};DD.forEach(r=>{const k=rot(r),c=cont[k]=cont[k]||{n:0,a:0,bob:0,bav:0};c.n++;c.bob+=+r.quantidade_bobinas||0;c.bav+=avB(r);if(avB(r))c.a++});const it=Object.entries(cont).sort((x,y)=>y[1].n-x[1].n),mx=Math.max(1,...it.map(x=>x[1].n));
  $(el).innerHTML=it.length?`<div class="hb">${it.map(([k,v])=>`<button data-k="${esc(campo)}" data-v="${esc(k)}" class="${DFt&&DFt.k==campo&&DFt.v==k?"sel":""}" title="${v.n} recebimento(s), ${v.bob} bobina(s), ${v.bav} avariada(s)"><span>${esc(k)}</span><b>${v.n}${v.bav?` <small>· ${v.bav} bob. avariada${v.bav>1?"s":""} (${v.bob?Math.round(v.bav/v.bob*100):0}%)</small>`:""}</b><i><u style="width:${(v.n-v.a)/mx*100}%"></u><u class="r" style="width:${v.a/mx*100}%"></u></i></button>`).join("")}</div>`:'<div class="vazio">Sem dados no período.</div>'}
 const MESES=["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
-const ROT={fx:r=>{const h=new Date(r.data_hora).getHours();return h<6?"Madrugada (00h–06h)":h<12?"Manhã (06h–12h)":h<18?"Tarde (12h–18h)":"Noite (18h–24h)"},av:r=>avB(r)?"Com avaria":"Sem avaria",tr:r=>(r.transportadora||"Não informado").trim().toUpperCase(),or:r=>(r.origem||"Não informado").trim().toUpperCase(),us:r=>r.usuario||"Não informado",cl:r=>r.clima&&CL[r.clima]?CL[r.clima][0]+" "+CL[r.clima][1]:"Não registrado",dia:r=>dia(r.data_hora),mes:r=>dia(r.data_hora).slice(0,7),hora:r=>String(new Date(r.data_hora).getHours()).padStart(2,"0")+"h"};
+const ROT={fo:r=>FORN[r.fornecedor]?r.fornecedor:"Não informado",fx:r=>{const h=new Date(r.data_hora).getHours();return h<6?"Madrugada (00h–06h)":h<12?"Manhã (06h–12h)":h<18?"Tarde (12h–18h)":"Noite (18h–24h)"},av:r=>avB(r)?"Com avaria":"Sem avaria",tr:r=>(r.transportadora||"Não informado").trim().toUpperCase(),or:r=>(r.origem||"Não informado").trim().toUpperCase(),us:r=>r.usuario||"Não informado",cl:r=>r.clima&&CL[r.clima]?CL[r.clima][0]+" "+CL[r.clima][1]:"Não registrado",dia:r=>dia(r.data_hora),mes:r=>dia(r.data_hora).slice(0,7),hora:r=>String(new Date(r.data_hora).getHours()).padStart(2,"0")+"h"};
 /* resumo numérico de uma lista de recebimentos (usado no período atual e no anterior) */
 function resumo(L){const conc=L.filter(r=>r.status=="CONCLUIDO"),bob=L.reduce((s,r)=>s+(+r.quantidade_bobinas||0),0),bav=L.reduce((s,r)=>s+avB(r),0),
  tm=conc.filter(r=>r.finalized_at).map(r=>new Date(r.finalized_at)-new Date(r.data_hora)).filter(x=>x>0).sort((x,y)=>x-y);
@@ -539,7 +559,7 @@ function dlt(cur,ant,ruim,pp){if(ant==null||cur==null||DPV==null)return"";if(!pp
  const bom=ruim?d<0:d>0;return `<span class="dl ${bom?"up":"dn"}">${d>0?"▲":"▼"} ${Math.abs(d).toFixed(pp?1:0).replace(".",",")}${pp?" p.p.":"%"}</span>`}
 function drawDash(a,b){
  const K=resumo(DD),P=DPV?resumo(DPV):null,{conc:_c}=K,bob=K.bob,bav=K.bav,av=K.av,and=K.and,med=K.med;
- $("#dsub").textContent=dBR(a)+" a "+dBR(new Date(b-1))+(P?" · comparado ao período anterior de mesmo tamanho":"");
+ $("#dsub").textContent=dBR(a)+" a "+dBR(new Date(b-1))+(DFO?" · fornecedor "+DFO:"")+(P?" · comparado ao período anterior de mesmo tamanho":"");
  $("#kp").innerHTML=`<div><span>Recebimentos</span><b>${K.n}${dlt(K.n,P&&P.n)}</b><small>${K.conc} concluídos</small></div><div><span>Bobinas</span><b>${bob}${dlt(bob,P&&P.bob)}</b><small>${K.n?(bob/K.n).toFixed(2).replace(".",","):"0"} por recebimento</small></div><div data-k="av" data-v="Com avaria" class="${DFt&&DFt.k=="av"?"sel":""}" title="Toque para listar só os recebimentos com avaria"><span>Taxa de avaria</span><b class="${bav?"r":""}">${K.tx==null?"—":pct(bav,bob)}${dlt(K.tx,P&&P.tx,1,1)}</b><small>${bav} bobina${bav==1?"":"s"} · ${av} receb.</small></div><div><span>Em andamento</span><b class="${and?"":""}">${and}</b><small>${and?"aguardando finalização":"nenhum aberto"}</small></div><div><span>Tempo médio</span><b>${med?hmin(med):"—"}${dlt(med,P&&P.med,1)}</b><small>mediana ${K.tm.length?hmin(qtl(K.tm,.5)):"—"}</small></div>`;
  insights(K,P);tempoCiclo(K);
  /* colunas: por hora se o período for 1 dia, senão por dia */
@@ -553,7 +573,7 @@ function drawDash(a,b){
  const ck=umDia?"hora":porMes?"mes":"dia";
  $("#ch").innerHTML=cols.length?cols.map(k=>{const v=g[k],t=v.ok+v.av+v.an,h=t/mx*100;const lb=umDia?k:porMes?MESES[+k.slice(5,7)-1]+"/"+k.slice(2,4):k.slice(8,10)+"/"+k.slice(5,7);
   return `<button data-k="${ck}" data-v="${k}" class="${DFt&&DFt.v==k?"sel":""}" title="${lb}: ${t}"><div class="ar"><b>${t||""}</b><div class="stk" style="height:${h}%">${v.ok?`<i class="c1" style="flex:${v.ok}"></i>`:""}${v.av?`<i class="c2" style="flex:${v.av}"></i>`:""}${v.an?`<i class="c3" style="flex:${v.an}"></i>`:""}</div></div><small>${lb}</small></button>`}).join(""):'<div class="vazio">Nenhum recebimento no período.</div>';
- hbars("#g_tr","tr",ROT.tr);hbars("#g_or","or",ROT.or);hbars("#g_us","us",ROT.us);hbars("#g_cl","cl",ROT.cl);hbars("#g_hr","fx",ROT.fx);
+ hbars("#g_fo","fo",ROT.fo);hbars("#g_tr","tr",ROT.tr);hbars("#g_or","or",ROT.or);hbars("#g_us","us",ROT.us);hbars("#g_cl","cl",ROT.cl);hbars("#g_hr","fx",ROT.fx);
  $$("#dash [data-k]").forEach(x=>x.onclick=()=>{DFt=DFt&&DFt.k==x.dataset.k&&DFt.v==x.dataset.v?null:{k:x.dataset.k,v:x.dataset.v};drawDash(a,b);if(DFt)$("#lt").scrollIntoView({behavior:"smooth",block:"center"})});
  const lista=DFt?DD.filter(r=>ROT[DFt.k](r)==DFt.v):DD;
  const nomeF=DFt?(DFt.k=="dia"?DFt.v.slice(8,10)+"/"+DFt.v.slice(5,7):DFt.k=="mes"?MESES[+DFt.v.slice(5,7)-1]+"/"+DFt.v.slice(0,4):DFt.v):"";
@@ -562,6 +582,7 @@ function drawDash(a,b){
 $$("#per button").forEach(x=>x.onclick=()=>{DP=x.dataset.per;$$("#per button").forEach(y=>y.classList.toggle("on",y==x));$("#dts").hidden=DP!="custom";
  if(DP=="custom"&&!$("#d1").value){const h=new Date();$("#d2").value=dia(h);h.setDate(h.getDate()-6);$("#d1").value=dia(h)}loadDash()});
 $("#d1").onchange=$("#d2").onchange=()=>loadDash();
+$$("#fo button").forEach(x=>x.onclick=()=>{DFO=x.dataset.fo;$$("#fo button").forEach(y=>y.classList.toggle("on",y==x));DD=doForn(DDA);DPV=doForn(DPVA);DFt=null;drawDash(...periodo())});
 $("#lc").onclick=()=>{DFt=null;drawDash(...periodo())};
 /* leitura automática do período: o que um analista olharia primeiro */
 function insights(K,P){const L=[],it=(c,t)=>L.push(`<li class="${c}"><i></i><span>${t}</span></li>`);
@@ -573,6 +594,10 @@ function insights(K,P){const L=[],it=(c,t)=>L.push(`<li class="${c}"><i></i><spa
   if(Object.keys(g).length>1)it("r",`<b>${esc(top[0])}</b> concentra ${pct(top[1].bav,K.bav,0)} das avarias, com taxa própria de ${pct(top[1].bav,top[1].bob)}.`)}
  else it("g","Nenhuma bobina com avaria no período.");
  if(K.tm.length>=3){const p90=qtl(K.tm,.9);it(p90>60*6e4?"w":"g",`Tempo de ciclo: metade dos recebimentos fecha em até <b>${hmin(qtl(K.tm,.5))}</b>; os 10% mais lentos passam de <b>${hmin(p90)}</b>.`)}
+ if(!DFO){const g={};DDA.forEach(r=>{if(!FORN[r.fornecedor])return;const x=g[r.fornecedor]=g[r.fornecedor]||{bob:0,bav:0,n:0};x.n++;x.bob+=+r.quantidade_bobinas||0;x.bav+=avB(r)});
+  const fs=Object.keys(g);if(fs.length)it(fs.length>1&&Math.abs(g[fs[0]].bav/g[fs[0]].bob-g[fs[1]].bav/g[fs[1]].bob)>.02?"w":"",
+   "Por fornecedor: "+fs.sort().map(f=>`${fdot(f)}<b>${f}</b> ${g[f].bob} bobina${g[f].bob>1?"s":""}, avaria ${pct(g[f].bav,g[f].bob)}`).join(" · ")+".");
+  const sf=DDA.filter(r=>!FORN[r.fornecedor]).length;if(sf)it("w",`<b>${sf}</b> recebimento${sf>1?"s":""} sem fornecedor informado — classifique em Histórico → Ver (pela cor da embalagem nas fotos).`)}
  const hr={};DD.forEach(r=>{const h=new Date(r.data_hora).getHours();hr[h]=(hr[h]||0)+1});const pk=Object.entries(hr).sort((x,y)=>y[1]-x[1])[0];
  if(pk&&K.n>=5)it("",`Horário de pico: <b>${String(pk[0]).padStart(2,"0")}h</b>, com ${pk[1]} recebimento${pk[1]>1?"s":""} (${pct(pk[1],K.n,0)} do total).`);
  const snf=DD.filter(r=>r.status=="CONCLUIDO"&&!String(r.nota_fiscal||"").trim()).length;
@@ -587,10 +612,10 @@ function tempoCiclo(K){const t=K.tm;if(!t.length){$("#g_tc").innerHTML='<div cla
   <div class="hist">${F.map((f,i)=>`<div title="${c[i]} recebimento(s)"><b>${c[i]||""}</b><u class="${i>=4?"slow":""}" style="height:${c[i]/mx*70}%"></u><small>${f[1]}</small></div>`).join("")}</div>`}
 /* planilha com todos os recebimentos do período (abre no Excel) */
 function csvPeriodo(){if(!DD.length)return toast("Nenhum recebimento no período.",1);const [a,b]=periodo();
- const L=[["Código","Data/hora","Status","Finalizado em","Tempo (min)","Usuário","Nota fiscal","Origem","Transportadora","Bobinas","Avaria bobina 1","Segunda bobina","Avaria bobina 2","Bobinas avariadas","Clima","Período","Observações"],
-  ...DD.map(r=>[r.codigo_recebimento,dt(r.data_hora),r.status=="CONCLUIDO"?"Concluído":"Em andamento",r.finalized_at?dt(r.finalized_at):"",r.finalized_at?Math.round((new Date(r.finalized_at)-new Date(r.data_hora))/6e4):"",r.usuario,r.nota_fiscal,r.origem,r.transportadora,+r.quantidade_bobinas||0,r.avaria==null?"":sim(r.avaria)?"SIM":"NÃO",r.tem_bobina2?"SIM":"NÃO",r.tem_bobina2?(sim(r.avaria_b2)?"SIM":"NÃO"):"",avB(r),r.clima&&CL[r.clima]?CL[r.clima][1]:"",diaNoite(r.data_hora),r.observacoes])];
+ const L=[["Código","Data/hora","Status","Finalizado em","Tempo (min)","Usuário","Nota fiscal","Fornecedor","Embalagem","Origem","Transportadora","Bobinas","Avaria bobina 1","Segunda bobina","Avaria bobina 2","Bobinas avariadas","Clima","Período","Observações"],
+  ...DD.map(r=>[r.codigo_recebimento,dt(r.data_hora),r.status=="CONCLUIDO"?"Concluído":"Em andamento",r.finalized_at?dt(r.finalized_at):"",r.finalized_at?Math.round((new Date(r.finalized_at)-new Date(r.data_hora))/6e4):"",r.usuario,r.nota_fiscal,FORN[r.fornecedor]?r.fornecedor:"",FORN[r.fornecedor]?FORN[r.fornecedor].emb:"",r.origem,r.transportadora,+r.quantidade_bobinas||0,r.avaria==null?"":sim(r.avaria)?"SIM":"NÃO",r.tem_bobina2?"SIM":"NÃO",r.tem_bobina2?(sim(r.avaria_b2)?"SIM":"NÃO"):"",avB(r),r.clima&&CL[r.clima]?CL[r.clima][1]:"",diaNoite(r.data_hora),r.observacoes])];
  const csv=L.map(l=>l.map(v=>'"'+String(v??"").replace(/"/g,'""')+'"').join(";")).join("\r\n");
- const el=document.createElement("a");el.href=URL.createObjectURL(new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8"}));el.download=`recebimentos_${dia(a)}_a_${dia(new Date(b-1))}.csv`;
+ const el=document.createElement("a");el.href=URL.createObjectURL(new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8"}));el.download=`recebimentos_${DFO?DFO.toLowerCase()+"_":""}${dia(a)}_a_${dia(new Date(b-1))}.csv`;
  document.body.appendChild(el);el.click();el.remove();setTimeout(()=>URL.revokeObjectURL(el.href),5000);toast("⬇ Planilha gerada")}
 
 /* ===== RELATÓRIO DE AVARIAS (selecionar → PDF / planilha / WhatsApp com NF e quantidade de bobinas avariadas) ===== */
@@ -599,7 +624,7 @@ function abrirAvarias(){
  const [a,b]=periodo(),fim=new Date(b);fim.setDate(fim.getDate()-1);
  $("#vwt").textContent="Relatório de avarias";$("#vws").textContent="Marque as avarias que entram no relatório";
  $("#vwc").innerHTML=`<div class="card"><div class="dates"><label class="f">De<input type="date" id="ra1" value="${dia(a)}"></label><label class="f">Até<input type="date" id="ra2" value="${dia(fim)}"></label></div>
-  <label class="f"><input id="raq" type="search" placeholder="Filtrar por NF, código, transportadora ou origem"></label>
+  <label class="f"><input id="raq" type="search" placeholder="Filtrar por NF, código, fornecedor, transportadora ou origem"></label>
   <label class="chk"><input type="checkbox" id="raand"> Incluir recebimentos ainda em andamento</label></div>
   <div class="card"><div class="lh"><h3 id="rat">Avarias</h3><div class="bx"><button class="btn ghost sm" id="ratd">Todas</button><button class="btn ghost sm" id="ranh">Nenhuma</button></div></div><div id="ral"></div></div>
   <div class="card rasum" id="rasum"></div>
@@ -619,14 +644,14 @@ async function carregarAvarias(){
  try{data=await buscarTudo(()=>{const q=sb.from(T).select("*").gte("data_hora",p[0].toISOString()).lt("data_hora",p[1].toISOString()).order("data_hora",{ascending:false});return $("#raand").checked?q:q.eq("status","CONCLUIDO")})}
  catch(error){$("#ral").innerHTML=`<div class="vazio">⚠️ Não consegui carregar: ${esc(error.message||error)}</div>`;return}
  RA=data.filter(r=>avB(r)>0);RAsel=new Set(RA.map(r=>String(r.id)));drawAvarias()}
-function raVis(){const q=($("#raq")?.value||"").toLowerCase().trim();return RA.filter(r=>!q||[r.nota_fiscal,r.codigo_recebimento,r.transportadora,r.origem].join(" ").toLowerCase().includes(q))}
+function raVis(){const q=($("#raq")?.value||"").toLowerCase().trim();return RA.filter(r=>!q||[r.nota_fiscal,r.codigo_recebimento,r.transportadora,r.origem,r.fornecedor].join(" ").toLowerCase().includes(q))}
 /* entra no relatório o que está marcado E visível no filtro — o que você vê marcado é o que sai */
 const raSel=()=>raVis().filter(r=>RAsel.has(String(r.id)));
 function porNF(lst){const m=new Map();lst.forEach(r=>{const k=String(r.nota_fiscal||"").trim()||"(sem NF)",g=m.get(k)||{nf:k,recs:[],av:0,bob:0};g.recs.push(r);g.av+=avB(r);g.bob+=+r.quantidade_bobinas||0;m.set(k,g)});
  return [...m.values()].sort((x,y)=>x.nf.localeCompare(y.nf,"pt-BR",{numeric:true}))}
 function drawAvarias(){
  const vis=raVis();$("#rat").textContent=`Avarias encontradas (${vis.length})`;
- $("#ral").innerHTML=vis.length?vis.map(r=>{const on=RAsel.has(String(r.id)),n=avB(r);return `<label class="rai ${on?"on":""}"><input type="checkbox" data-ra="${esc(r.id)}" ${on?"checked":""}><span><b>NF ${esc(r.nota_fiscal||"não informada")}</b><small>${esc(r.codigo_recebimento)} · ${dt(r.data_hora)}</small><small>${esc(r.transportadora||"—")} · ${esc(r.origem||"—")} · ${esc(avQuais(r))}${r.status!="CONCLUIDO"?" · <i>em andamento</i>":""}</small></span><em>${n}<small><br>bob.</small></em></label>`}).join(""):'<div class="vazio">Nenhuma avaria registrada neste período.</div>';
+ $("#ral").innerHTML=vis.length?vis.map(r=>{const on=RAsel.has(String(r.id)),n=avB(r);return `<label class="rai ${on?"on":""}"><input type="checkbox" data-ra="${esc(r.id)}" ${on?"checked":""}><span><b>NF ${esc(r.nota_fiscal||"não informada")}</b><small>${esc(r.codigo_recebimento)} · ${dt(r.data_hora)}</small><small>${FORN[r.fornecedor]?fdot(r.fornecedor)+esc(r.fornecedor)+" · ":""}${esc(r.transportadora||"—")} · ${esc(r.origem||"—")} · ${esc(avQuais(r))}${r.status!="CONCLUIDO"?" · <i>em andamento</i>":""}</small></span><em>${n}<small><br>bob.</small></em></label>`}).join(""):'<div class="vazio">Nenhuma avaria registrada neste período.</div>';
  $$("[data-ra]").forEach(c=>c.onchange=()=>{c.checked?RAsel.add(c.dataset.ra):RAsel.delete(c.dataset.ra);drawAvarias()});
  const sel=raSel(),nfs=porNF(sel),tot=sel.reduce((s,r)=>s+avB(r),0),semNF=sel.filter(r=>!String(r.nota_fiscal||"").trim()).length;
  $("#rasum").innerHTML=`<div><b>${sel.length}</b><span>Recebimentos</span></div><div><b>${nfs.length}</b><span>Notas fiscais</span></div><div><b class="r">${tot}</b><span>Bobinas avariadas</span></div>${semNF?`<div class="msg warn" style="grid-column:1/-1;margin:4px 0 0">⚠️ ${semNF} recebimento(s) sem nota fiscal. Preencha a NF em Histórico → Ver antes de enviar o relatório.</div>`:""}`;
@@ -645,29 +670,33 @@ async function pdfAvarias(){
    <h3>Resumo por nota fiscal</h3><table class="rt"><thead><tr><th>Nota fiscal</th><th class="n">Recebimentos</th><th class="n">Bobinas recebidas</th><th class="n">Bobinas avariadas</th></tr></thead>
    <tbody>${g.map(x=>`<tr><td><b>${esc(x.nf)}</b></td><td class="n">${x.recs.length}</td><td class="n">${x.bob}</td><td class="n"><b>${x.av}</b></td></tr>`).join("")}</tbody>
    <tfoot><tr><td>TOTAL · ${g.length} NF</td><td class="n">${sel.length}</td><td class="n">${bobTot}</td><td class="n">${tot}</td></tr></tfoot></table>
-   <h3>Detalhamento</h3><table class="rt"><thead><tr><th>Nota fiscal</th><th>Recebimento</th><th>Data/hora</th><th>Transportadora</th><th>Origem</th><th>Bobina(s) avariada(s)</th><th class="n">Qtd.</th><th>Observações</th></tr></thead>
-   <tbody>${g.map(x=>x.recs.map(r=>`<tr><td>${esc(x.nf)}</td><td>${esc(r.codigo_recebimento)}</td><td>${dt(r.data_hora)}</td><td>${esc(r.transportadora||"—")}</td><td>${esc(r.origem||"—")}</td><td>${esc(avQuais(r))}</td><td class="n">${avB(r)}</td><td>${esc(r.observacoes||"")}</td></tr>`).join("")).join("")}</tbody></table>
+   ${porFornTab(sel)}
+   <h3>Detalhamento</h3><table class="rt"><thead><tr><th>Nota fiscal</th><th>Recebimento</th><th>Data/hora</th><th>Fornecedor</th><th>Transportadora</th><th>Origem</th><th>Bobina(s) avariada(s)</th><th class="n">Qtd.</th><th>Observações</th></tr></thead>
+   <tbody>${g.map(x=>x.recs.map(r=>`<tr><td>${esc(x.nf)}</td><td>${esc(r.codigo_recebimento)}</td><td>${dt(r.data_hora)}</td><td>${esc(FORN[r.fornecedor]?r.fornecedor:"—")}</td><td>${esc(r.transportadora||"—")}</td><td>${esc(r.origem||"—")}</td><td>${esc(avQuais(r))}</td><td class="n">${avB(r)}</td><td>${esc(r.observacoes||"")}</td></tr>`).join("")).join("")}</tbody></table>
    ${fotos.length?`<h3>Fotos das avarias</h3><div class="g">${fotos.map(e=>`<figure><img src="${esc(e.url)}" crossorigin="anonymous"><figcaption>NF ${esc(e.r.nota_fiscal||"—")} · ${esc(e.r.codigo_recebimento)} · ${e.tipo_evidencia=="avaria-b2"?"Bobina 2":"Bobina 1"}</figcaption></figure>`).join("")}</div>`:""}`;
   imprimirRep()
  }catch(x){toast("Não consegui gerar o relatório: "+(x.message||x),1)}
  finally{btn.disabled=false;btn.innerHTML=t0}}
+/* resumo por fornecedor no PDF de avarias */
+function porFornTab(sel){const g={};sel.forEach(r=>{const k=FORN[r.fornecedor]?fornTxt(r):"Não informado",x=g[k]=g[k]||{n:0,bob:0,av:0};x.n++;x.bob+=+r.quantidade_bobinas||0;x.av+=avB(r)});
+ return `<h3>Resumo por fornecedor</h3><table class="rt"><thead><tr><th>Fornecedor</th><th class="n">Recebimentos</th><th class="n">Bobinas recebidas</th><th class="n">Bobinas avariadas</th></tr></thead><tbody>${Object.entries(g).sort().map(([k,x])=>`<tr><td><b>${esc(k)}</b></td><td class="n">${x.n}</td><td class="n">${x.bob}</td><td class="n"><b>${x.av}</b></td></tr>`).join("")}</tbody></table>`}
 function csvAvarias(){
  const sel=raSel(),p=raPer();if(!sel.length||!p)return;
- const L=[["Nota fiscal","Recebimento","Data/hora","Transportadora","Origem","Bobinas recebidas","Bobinas avariadas","Quais bobinas","Status","Observações"],
-  ...porNF(sel).flatMap(x=>x.recs.map(r=>[x.nf,r.codigo_recebimento,dt(r.data_hora),r.transportadora,r.origem,+r.quantidade_bobinas||0,avB(r),avQuais(r),r.status=="CONCLUIDO"?"Concluído":"Em andamento",r.observacoes]))];
+ const L=[["Nota fiscal","Recebimento","Data/hora","Fornecedor","Transportadora","Origem","Bobinas recebidas","Bobinas avariadas","Quais bobinas","Status","Observações"],
+  ...porNF(sel).flatMap(x=>x.recs.map(r=>[x.nf,r.codigo_recebimento,dt(r.data_hora),FORN[r.fornecedor]?r.fornecedor:"",r.transportadora,r.origem,+r.quantidade_bobinas||0,avB(r),avQuais(r),r.status=="CONCLUIDO"?"Concluído":"Em andamento",r.observacoes]))];
  const csv=L.map(l=>l.map(v=>'"'+String(v??"").replace(/"/g,'""')+'"').join(";")).join("\r\n"); /* ";" + BOM: abre certo no Excel em português */
  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["﻿"+csv],{type:"text/csv;charset=utf-8"}));a.download=`avarias_${$("#ra1").value}_a_${$("#ra2").value}.csv`;
  document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),5000);toast("⬇ Planilha gerada")}
 function waAvarias(){
  const sel=raSel(),p=raPer();if(!sel.length||!p)return;const g=porNF(sel),tot=sel.reduce((s,r)=>s+avB(r),0);
  waTexto(["⚠️ RELATÓRIO DE AVARIAS — BOBINAS","📅 Período: "+p[2]+" a "+p[3],
-  ...g.map(x=>"🧾 NF "+x.nf+": "+x.av+(x.av==1?" bobina avariada":" bobinas avariadas")+"\n   "+x.recs.map(r=>r.codigo_recebimento+" ("+dBR(r.data_hora)+", "+(r.transportadora||"—")+")").join("\n   ")),
+  ...g.map(x=>"🧾 NF "+x.nf+": "+x.av+(x.av==1?" bobina avariada":" bobinas avariadas")+"\n   "+x.recs.map(r=>r.codigo_recebimento+" ("+dBR(r.data_hora)+", "+(FORN[r.fornecedor]?r.fornecedor+", ":"")+(r.transportadora||"—")+")").join("\n   ")),
   "📦 TOTAL: "+tot+(tot==1?" bobina avariada":" bobinas avariadas")+" em "+g.length+(g.length==1?" nota fiscal":" notas fiscais")].join("\n\n"))}
 
 async function loadHist(){const {data}=await sb.from(T).select("*").order("data_hora",{ascending:false}).limit(300);H=data||[];drawHist()}
 let HF="";
-const HFT={and:r=>r.status!="CONCLUIDO",av:r=>avB(r)>0,nf:r=>!String(r.nota_fiscal||"").trim()};
-function drawHist(){const q=$("#q").value.toLowerCase().trim();const a=H.filter(r=>(!HF||HFT[HF](r))&&(!q||[r.codigo_recebimento,dt(r.data_hora),r.transportadora,r.nota_fiscal,r.usuario,r.origem].join(" ").toLowerCase().includes(q)));
+const HFT={and:r=>r.status!="CONCLUIDO",av:r=>avB(r)>0,nf:r=>!String(r.nota_fiscal||"").trim(),xi:r=>r.fornecedor=="Xiamen",na:r=>r.fornecedor=="Nanshan",sf:r=>!FORN[r.fornecedor]};
+function drawHist(){const q=$("#q").value.toLowerCase().trim();const a=H.filter(r=>(!HF||HFT[HF](r))&&(!q||[r.codigo_recebimento,dt(r.data_hora),r.transportadora,r.nota_fiscal,r.usuario,r.origem,r.fornecedor].join(" ").toLowerCase().includes(q)));
  $$("#hf button").forEach(b=>{const k=b.dataset.hf,n=k?H.filter(HFT[k]).length:H.length;b.textContent=b.textContent.replace(/ \(\d+\)$/,"")+" ("+n+")"});
  $("#hsub").textContent=`${a.length} de ${H.length} recebimentos (últimos 300)`;
  $("#hl").innerHTML=a.map(rowH).join("")||'<div class="card vazio" style="text-align:center">Nenhum recebimento encontrado.</div>';bindRows("#hl")}
@@ -701,6 +730,8 @@ function render(){
  $$("[data-av1]").forEach(b=>{b.classList.toggle("on",R.avaria===(b.dataset.av1=="1"));b.disabled=L});
  $$("[data-av2]").forEach(b=>{b.classList.toggle("on",R.avaria_b2===(b.dataset.av2=="1"));b.disabled=L});
  $$("[data-b2]").forEach(b=>{b.classList.toggle("on",R.tem_bobina2===(b.dataset.b2=="1"));b.disabled=L});
+ const TF=temForn(R);$$("#fforn [data-fo]").forEach(b=>{b.classList.toggle("on",R.fornecedor==b.dataset.fo);b.disabled=L||!TF});
+ $("#fhint").innerHTML=TF?"Identifique pela cor da embalagem da bobina.":'<span class="warn">⚠️ Campo ainda não ativado no banco: o administrador precisa rodar supabase/fornecedor.sql.</span>';
  $("#sec-b2").hidden=R.tem_bobina2!==true;
  $("#cl").innerHTML=Object.entries(CL).filter(([k])=>k!="noite"||R.clima=="noite").map(([k,v])=>`<button data-cl="${k}" class="${R.clima==k?"on":""}" ${L?"disabled":""}><i>${v[0]}</i>${v[1]}</button>`).join("");
  $$("[data-cl]").forEach(b=>b.onclick=()=>{patch({clima:b.dataset.cl,clima_data_hora:new Date().toISOString()})});
@@ -721,14 +752,14 @@ function render(){
  $$("[data-rt]").forEach(b=>b.onclick=()=>tentarDeNovo(b.dataset.rt));
  $$(".th").forEach(t=>t.onclick=()=>{const x=E[EV[t.dataset.i].s];if(x){$("#lbi").src=x.url;$("#lb").style.display="flex"}});
  sum();
- const answered=R.avaria!=null&&R.tem_bobina2!=null&&(R.tem_bobina2!==true||R.avaria_b2!=null);
+ const answered=(!temForn(R)||!!R.fornecedor)&&R.avaria!=null&&R.tem_bobina2!=null&&(R.tem_bobina2!==true||R.avaria_b2!=null);
  const pend=Object.keys(S).length>0,ok=!L&&n==NF&&!pend&&answered;$("#bf").disabled=!ok;$("#bf").textContent=L?"✓ CONCLUÍDO":"FINALIZAR RECEBIMENTO";
- $("#fm").innerHTML=L?"":pend?'<span class="warn">⏫ Aguarde: fotos ainda subindo para a nuvem.</span>':n<NF?`<span class="warn">⚠️ Faltam ${NF-n} evidências obrigatórias.</span>`:R.avaria==null?'<span class="warn">⚠️ Responda se a bobina 1 tem avaria.</span>':R.tem_bobina2==null?'<span class="warn">⚠️ Informe quantas bobinas (item 1).</span>':(R.tem_bobina2===true&&R.avaria_b2==null?'<span class="warn">⚠️ Responda se a bobina 2 tem avaria.</span>':'<span class="good">✓ Todas as evidências registradas</span>');
+ $("#fm").innerHTML=L?"":pend?'<span class="warn">⏫ Aguarde: fotos ainda subindo para a nuvem.</span>':n<NF?`<span class="warn">⚠️ Faltam ${NF-n} evidências obrigatórias.</span>`:temForn(R)&&!R.fornecedor?'<span class="warn">⚠️ Selecione o fornecedor (item 1).</span>':R.avaria==null?'<span class="warn">⚠️ Responda se a bobina 1 tem avaria.</span>':R.tem_bobina2==null?'<span class="warn">⚠️ Informe quantas bobinas (item 1).</span>':(R.tem_bobina2===true&&R.avaria_b2==null?'<span class="warn">⚠️ Responda se a bobina 2 tem avaria.</span>':'<span class="good">✓ Todas as evidências registradas</span>');
  $("#bp").disabled=!L;updWa();$("#be").hidden=!L;
  /* cabeçalho, etapas e barra fixa */
  $("#rmeta").textContent=[dt(R.data_hora),R.usuario,diaNoite(R.data_hora)].filter(Boolean).join(" · ");
  $("#rst").className="pill "+(L?"c":"a");$("#rst").textContent=L?"Concluído":"Em andamento";
- const dados=["origem","transportadora"].every(k=>String(R[k]||"").trim())&&R.tem_bobina2!=null,st=[dados,n==NF&&answered,!!R.clima,L];
+ const dados=["origem","transportadora"].every(k=>String(R[k]||"").trim())&&R.tem_bobina2!=null&&(!temForn(R)||!!R.fornecedor),st=[dados,n==NF&&answered,!!R.clima,L];
  $$("#steps a").forEach((x,i)=>{x.className=st[i]?"ok":(st.indexOf(false)==i?"cur":"")});
  $("#dock").hidden=L;$("#dkn").textContent=n+"/"+NF;$("#dkb").className="bar"+(n==NF?" full":"");$("#dkb i").style.width=n/NF*100+"%";
  $("#dkt").textContent=pend?"enviando fotos...":ok?"pronto para finalizar":(sumPend()[0]||"");$("#dkf").disabled=!ok;
@@ -742,7 +773,8 @@ document.addEventListener("click",ev=>{const b=ev.target.closest("[data-op] [dat
  else{OUT[k]=true;const pre=[...g.querySelectorAll("[data-o]")].some(x=>x.dataset.o&&x.dataset.o.toLowerCase()==(R[k]||"").toLowerCase());if(pre)patch({[k]:""});else render();setTimeout(()=>inp.focus(),50)}});
 /* checklist: o que falta para finalizar (substitui o resumo que repetia o formulário) */
 function chk(){syncEV();const n=EV.filter(e=>E[e.s]).length,miss=EV.filter(e=>!E[e.s]),pend=Object.keys(S).length;
- return [[!!String(R.origem||"").trim()&&!!String(R.transportadora||"").trim(),"Origem e transportadora","#c1",R.transportadora||""],
+ return [...(temForn(R)?[[!!R.fornecedor,"Fornecedor","#c1",R.fornecedor?FORN[R.fornecedor].ico+" "+R.fornecedor:""]]:[]),
+  [!!String(R.origem||"").trim()&&!!String(R.transportadora||"").trim(),"Origem e transportadora","#c1",R.transportadora||""],
   [!!String(R.nota_fiscal||"").trim(),"Nota fiscal (recomendado)","#c1",R.nota_fiscal||"opcional"],
   [n==NF&&!pend,"Fotos obrigatórias","#c2",pend?"enviando "+pend:n+"/"+NF+(miss.length&&miss.length<=3?" · faltam "+miss.map(m=>m.d).join(", "):"")],
   [R.avaria!=null,"Avaria da bobina 1","#c2",R.avaria==null?"":R.avaria?"SIM":"NÃO"],
@@ -756,6 +788,7 @@ async function patch(o){if(locked())return;Object.assign(R,o);render();const {er
 $$("[data-f]").forEach(i=>i.onchange=()=>patch({[i.dataset.f]:i.value.trim()}));
 $$("[data-av1]").forEach(b=>b.onclick=()=>patch({avaria:b.dataset.av1=="1"}));
 $$("[data-av2]").forEach(b=>b.onclick=()=>patch({avaria_b2:b.dataset.av2=="1"}));
+$$("#fforn [data-fo]").forEach(b=>b.onclick=()=>patch({fornecedor:b.dataset.fo}));
 $$("[data-b2]").forEach(b=>b.onclick=()=>{const v=b.dataset.b2=="1";patch({tem_bobina2:v,quantidade_bobinas:v?2:1})});
 
 /* ===== FOTOS: compressão + fila de envio que não perde foto ===== */
@@ -841,7 +874,7 @@ setInterval(()=>{if(navigator.onLine)enviarFila()},30000);
 async function fin(){
  syncEV();
  const m=Object.keys(FL).filter(k=>!String(R[k]||"").trim()).map(k=>FL[k]);
- if(R.avaria==null)m.push("avaria da bobina 1");if(R.tem_bobina2==null)m.push("quantidade de bobinas (1 ou 2)");if(R.tem_bobina2===true&&R.avaria_b2==null)m.push("avaria da bobina 2");if(!R.clima)m.push("condição climática");
+ if(temForn(R)&&!R.fornecedor)m.push("fornecedor (Xiamen ou Nanshan)");if(R.avaria==null)m.push("avaria da bobina 1");if(R.tem_bobina2==null)m.push("quantidade de bobinas (1 ou 2)");if(R.tem_bobina2===true&&R.avaria_b2==null)m.push("avaria da bobina 2");if(!R.clima)m.push("condição climática");
  if(m.length)return toast("Preencha: "+m.join(", "),1);
  $("#bf").disabled=true;
  const {data:fl,error}=await sb.storage.from(B).list(R.codigo_recebimento,{limit:50}),names=(fl||[]).map(x=>x.name);
@@ -853,7 +886,7 @@ async function fin(){
 }
 /* texto do WhatsApp — um só lugar, usado pela tela do recebimento e pelas listas */
 function txtRec(r,nEv,totEv){const c=r.clima&&CL[r.clima]?CL[r.clima][0]+" Clima: "+CL[r.clima][1].toUpperCase():"Clima: —",q=+r.quantidade_bobinas||0;
- return ["📦 RECEBIMENTO DE BOBINA METÁLICA","🆔 Recebimento: "+r.codigo_recebimento,"📅 Data/hora: "+dt(r.data_hora),...(r.nota_fiscal?["🧾 Nota fiscal: "+r.nota_fiscal]:[]),"🌎 Origem: "+(r.origem||"—"),"🚛 Transportadora: "+(r.transportadora||"—"),"📦 Quantidade: "+q+(q==1?" bobina":" bobinas"),"⚠️ Avaria bobina 1: "+(sim(r.avaria)?"SIM":"NÃO"),...(r.tem_bobina2===true?["⚠️ Avaria bobina 2: "+(sim(r.avaria_b2)?"SIM":"NÃO")]:[]),...(r.observacoes?["📝 Observações: "+r.observacoes]:[]),c,"Período: "+diaNoite(r.data_hora),"📸 Evidências: "+nEv+"/"+totEv,r.status=="CONCLUIDO"?"✅ Recebimento concluído":"⏳ Recebimento em andamento"].join("\n\n")}
+ return ["📦 RECEBIMENTO DE BOBINA METÁLICA","🆔 Recebimento: "+r.codigo_recebimento,"📅 Data/hora: "+dt(r.data_hora),...(r.nota_fiscal?["🧾 Nota fiscal: "+r.nota_fiscal]:[]),...(FORN[r.fornecedor]?["🏭 Fornecedor: "+FORN[r.fornecedor].ico+" "+fornTxt(r)]:[]),"🌎 Origem: "+(r.origem||"—"),"🚛 Transportadora: "+(r.transportadora||"—"),"📦 Quantidade: "+q+(q==1?" bobina":" bobinas"),"⚠️ Avaria bobina 1: "+(sim(r.avaria)?"SIM":"NÃO"),...(r.tem_bobina2===true?["⚠️ Avaria bobina 2: "+(sim(r.avaria_b2)?"SIM":"NÃO")]:[]),...(r.observacoes?["📝 Observações: "+r.observacoes]:[]),c,"Período: "+diaNoite(r.data_hora),"📸 Evidências: "+nEv+"/"+totEv,r.status=="CONCLUIDO"?"✅ Recebimento concluído":"⏳ Recebimento em andamento"].join("\n\n")}
 function msg(){syncEV();return txtRec(R,EV.filter(e=>E[e.s]).length,NF)}
 function copiar(t){if(navigator.clipboard&&isSecureContext)return navigator.clipboard.writeText(t).then(()=>1,()=>copiar2(t));return Promise.resolve(copiar2(t))}
 function copiar2(t){const a=document.createElement("textarea");a.value=t;a.style.cssText="position:fixed;opacity:0";document.body.appendChild(a);a.select();let ok=false;try{ok=document.execCommand("copy")}catch(e){}a.remove();return ok}
