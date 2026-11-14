@@ -1,0 +1,1109 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Monitoramento do Trava-Rodas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --blue:#0A3C8C; --blue2:#1F5FBF; --navy:#0B1F3A; --ink:#1B2A41; --muted:#5B6B82;
+  --line:#22416E; --bg:#EEF2F7; --paper:#FFFFFF; --grid:#E6ECF4; --rule:#D3DCE8;
+  --red:#D7263D; --amber:#F2A900; --green:#1A9E55; --sensor:#0091DA;
+  --steel:#9AA8BA; --chock:#E7C55A;
+  --sans:'Barlow',Inter,'Segoe UI',Arial,sans-serif;
+  --cond:'Barlow Condensed','Barlow',Inter,Arial,sans-serif;
+  --mono:'IBM Plex Mono','DejaVu Sans Mono',Consolas,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:#1a2333;font-family:var(--sans);color:var(--ink);overflow:hidden}
+#stage{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
+#deck{width:1280px;height:720px;position:relative;transform-origin:center center;flex:none}
+.slide{position:absolute;inset:0;background:var(--paper);display:none;flex-direction:column;overflow:hidden}
+.slide.active{display:flex}
+.slide.cover::before{display:none}
+/* blueprint grid on paper */
+.slide::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:32px 32px;opacity:.55}
+.sh{position:relative;display:flex;align-items:flex-end;gap:20px;padding:26px 48px 14px;border-bottom:2px solid var(--blue)}
+.sh .num{font:600 13px var(--mono);color:#fff;background:var(--blue);padding:5px 9px;border-radius:3px;align-self:center}
+.sh .kick{font:600 12px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--blue2);margin-bottom:4px}
+.sh h2{font:700 32px/1.05 var(--cond);color:var(--navy);letter-spacing:.01em}
+.sh .doc{margin-left:auto;text-align:right;font:500 11px/1.5 var(--mono);color:var(--muted)}
+.body{position:relative;flex:1;padding:22px 48px 10px;display:flex;gap:28px;min-height:0}
+.sf{position:relative;display:flex;justify-content:space-between;align-items:center;padding:9px 48px;border-top:1px solid var(--rule);font:500 11px var(--mono);color:var(--muted);background:rgba(255,255,255,.85)}
+.sf .pg{color:var(--blue);font-weight:600}
+.stripe{position:absolute;left:0;top:0;bottom:0;width:6px;background:linear-gradient(var(--blue) 0 70%,var(--red) 70% 80%,var(--amber) 80% 90%,var(--green) 90%)}
+h3{font:700 19px var(--cond);color:var(--navy);letter-spacing:.02em;margin-bottom:8px}
+p,li{font-size:16px;line-height:1.42}
+.muted{color:var(--muted)}
+.mono{font-family:var(--mono)}
+.card{background:#fff;border:1px solid var(--rule);border-radius:6px;padding:16px 18px;position:relative}
+.card.blue{border-top:4px solid var(--blue)}
+.tag{display:inline-block;font:600 11px var(--mono);letter-spacing:.06em;padding:3px 7px;border-radius:3px;text-transform:uppercase}
+.t-red{background:#FBE3E6;color:#A3162A}.t-amb{background:#FFF2CC;color:#7A5600}.t-grn{background:#DDF3E6;color:#0F6B39}.t-blu{background:#E1EBFA;color:var(--blue)}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;vertical-align:middle}
+ul.clean{list-style:none}
+ul.clean li{position:relative;padding-left:18px;margin:5px 0}
+ul.clean li::before{content:"";position:absolute;left:0;top:.6em;width:8px;height:2px;background:var(--blue)}
+.callout{border-left:4px solid var(--amber);background:#FFF8E1;padding:10px 14px;border-radius:0 6px 6px 0;font-size:14.5px;line-height:1.4}
+.callout.red{border-color:var(--red);background:#FDECEE}
+.callout.blue{border-color:var(--blue);background:#EAF1FB}
+/* drawing frame */
+.dwg{position:relative;background:#FBFCFE;border:1.5px solid var(--line);border-radius:2px;padding:6px}
+.dwg{display:flex;align-items:center;justify-content:center;padding:6px 6px 46px}
+.dwg>svg{display:block;width:100%;height:100%;flex:1;min-height:0}
+.tb{position:absolute;right:-1.5px;bottom:-1.5px;display:grid;grid-template-columns:auto auto auto;border:1.5px solid var(--line);background:#fff;font:500 9.5px/1.25 var(--mono);color:var(--ink)}
+.tb div{padding:3px 7px;border-left:1px solid var(--line);border-top:1px solid var(--line)}
+.tb div:nth-child(-n+3){border-top:0}.tb div:nth-child(3n+1){border-left:0}
+.tb b{display:block;font-size:8px;color:var(--muted);font-weight:500;letter-spacing:.06em}
+.legend{display:grid;grid-template-columns:26px 1fr;gap:5px 8px;align-content:start;font-size:13.5px;line-height:1.3}
+.legend .b{width:22px;height:22px;border-radius:50%;border:1.6px solid var(--blue);color:var(--blue);font:700 11px var(--mono);display:flex;align-items:center;justify-content:center;background:#fff}
+.legend .b.s{background:var(--sensor);border-color:var(--sensor);color:#fff}
+table.t{width:100%;border-collapse:collapse;font-size:13px;line-height:1.3;background:#fff}
+table.t th{background:var(--navy);color:#fff;font:600 11px var(--mono);letter-spacing:.05em;text-transform:uppercase;text-align:left;padding:7px 8px}
+table.t td{border-bottom:1px solid var(--rule);padding:6px 8px;vertical-align:top}
+table.t tr:nth-child(even) td{background:#F6F8FB}
+/* svg classes */
+svg .ln{fill:none;stroke:var(--line);stroke-width:1.6}
+svg .th{stroke-width:1}
+svg .hid{stroke-dasharray:5 3}
+svg .ctr{stroke-dasharray:16 3 3 3;stroke:#7d93b5;stroke-width:.9;fill:none}
+svg .lbl{font:600 11px var(--mono);fill:var(--ink)}
+svg .lbls{font:500 9.5px var(--mono);fill:var(--muted)}
+svg .lblb{font:700 13px var(--cond);fill:var(--navy);letter-spacing:.03em}
+svg .lead{stroke:var(--blue);stroke-width:1;fill:none}
+svg .bal circle{fill:#fff;stroke:var(--blue);stroke-width:1.6}
+svg .bal text{font:700 11px var(--mono);fill:var(--blue);text-anchor:middle;dominant-baseline:central}
+svg .bal.s circle{fill:var(--sensor);stroke:var(--sensor)}
+svg .bal.s text{fill:#fff}
+svg .cable{fill:none;stroke:var(--blue);stroke-width:2.2;stroke-dasharray:7 4}
+svg .sens{fill:var(--sensor);stroke:#035b8a;stroke-width:1}
+svg .zone{fill:var(--sensor);fill-opacity:.14;stroke:var(--sensor);stroke-width:1;stroke-dasharray:4 3}
+svg .dim{stroke:#4a5d7a;stroke-width:.9;fill:none}
+/* nav */
+#nav{position:fixed;bottom:14px;right:16px;display:flex;gap:6px;z-index:5;font:600 12px var(--mono);opacity:.18;transition:opacity .2s}
+#nav:hover{opacity:1}
+#nav button{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:4px;padding:6px 11px;cursor:pointer;font:inherit}
+#nav span{color:#c9d4e6;padding:6px 6px}
+#prog{position:fixed;left:0;top:0;height:3px;background:var(--amber);z-index:5;transition:width .25s}
+@media print{
+  @page{size:1280px 720px;margin:0}
+  html,body{height:auto;overflow:visible;background:#fff}
+  #stage{position:static;display:block}
+  #deck{transform:none!important;height:auto}
+  .slide{position:relative;display:flex!important;width:1280px;height:720px;page-break-after:always;break-after:page}
+  #nav,#prog{display:none}
+}
+</style>
+</head>
+<body>
+<div id="prog"></div>
+
+<!-- shared SVG definitions -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<defs>
+  <pattern id="hConc" width="16" height="16" patternUnits="userSpaceOnUse">
+    <rect width="16" height="16" fill="#E9ECF1"/>
+    <circle cx="3" cy="4" r="1" fill="#9AA5B4"/><circle cx="11" cy="10" r="1.3" fill="#9AA5B4"/>
+    <path d="M6 14 l2 -3 l2 3z" fill="none" stroke="#9AA5B4" stroke-width=".7"/>
+    <circle cx="13" cy="3" r=".7" fill="#9AA5B4"/>
+  </pattern>
+  <pattern id="hSteel" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+    <rect width="6" height="6" fill="#DCE3EC"/><line x1="0" y1="0" x2="0" y2="6" stroke="#7F8FA6" stroke-width="1"/>
+  </pattern>
+  <pattern id="hEarth" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)">
+    <rect width="10" height="10" fill="#EFEBE4"/><line x1="0" y1="0" x2="0" y2="10" stroke="#B9AE9C" stroke-width="1"/>
+  </pattern>
+  <pattern id="hRubber" width="5" height="5" patternUnits="userSpaceOnUse">
+    <rect width="5" height="5" fill="#2E3440"/><circle cx="2.5" cy="2.5" r=".6" fill="#4C566A"/>
+  </pattern>
+  <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#22416E"/></marker>
+  <marker id="arrB" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#0A3C8C"/></marker>
+  <marker id="arrR" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#D7263D"/></marker>
+  <marker id="dimA" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 2L10 5L0 8z" fill="#4a5d7a"/></marker>
+  <radialGradient id="glowG"><stop offset="0" stop-color="#4BE38A"/><stop offset="1" stop-color="#1A9E55"/></radialGradient>
+  <radialGradient id="glowR"><stop offset="0" stop-color="#FF6B7A"/><stop offset="1" stop-color="#D7263D"/></radialGradient>
+  <!-- reusable symbols -->
+  <g id="tower">
+    <rect x="-11" y="-4" width="22" height="5" rx="1" fill="#3B4252"/>
+    <rect x="-10" y="1" width="20" height="16" fill="#7A2430"/>
+    <rect x="-10" y="17" width="20" height="16" fill="#7A6020"/>
+    <rect x="-10" y="33" width="20" height="16" fill="#1D5A38"/>
+    <rect x="-12" y="49" width="24" height="9" rx="1" fill="#3B4252"/>
+  </g>
+</defs>
+</svg>
+
+<div id="stage"><div id="deck">
+
+<!-- ============ 01 CAPA ============ -->
+<section class="slide cover" data-n="1" style="background:var(--navy)">
+  <div style="position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);background-size:32px 32px"></div>
+  <div style="position:absolute;left:0;top:0;bottom:0;width:10px;background:linear-gradient(var(--blue2) 0 70%,var(--red) 70% 80%,var(--amber) 80% 90%,var(--green) 90%)"></div>
+  <div style="position:relative;display:flex;height:100%">
+    <div style="flex:0 0 610px;padding:64px 0 48px 72px;display:flex;flex-direction:column;color:#fff">
+      <div style="font:600 13px var(--mono);letter-spacing:.18em;color:#8FB3EA">BALL CORPORATION · UNIDADE TRÊS RIOS – RJ</div>
+      <div style="font:600 13px var(--mono);letter-spacing:.18em;color:#8FB3EA;margin-top:4px">EXPEDIÇÃO · DOCAS DE CARREGAMENTO</div>
+      <h1 style="font:700 60px/1.0 var(--cond);margin-top:64px;letter-spacing:.005em">Projeto de Monitoramento Eletrônico do Trava‑Rodas</h1>
+      <div style="font:500 22px/1.35 var(--sans);color:#C9D7EE;margin-top:20px;max-width:520px">Sistema inteligente de monitoramento e advertência para carretas posicionadas na doca</div>
+      <div style="margin-top:auto;display:flex;gap:10px;flex-wrap:wrap">
+        <span class="tag" style="background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.25)">Proposta conceitual · Rev. 0</span>
+        <span class="tag" style="background:rgba(242,169,0,.18);color:#FFD566;border:1px solid rgba(242,169,0,.45)">Para discussão técnica — não aprovado para instalação</span>
+      </div>
+      <div style="margin-top:18px;font:500 14px/1.5 var(--mono);color:#9FB3D1">Apresentação a: Cardinal — Manutenção Eletrônica<br>Convite para desenvolvimento conjunto de protótipo</div>
+    </div>
+    <div style="flex:1;position:relative">
+      <svg viewBox="0 0 640 720" style="position:absolute;inset:0;width:100%;height:100%">
+        <g stroke="#6F93C9" fill="none" stroke-width="1.4">
+          <!-- ground -->
+          <line x1="0" y1="540" x2="640" y2="540" stroke-width="2"/>
+          <g stroke-width=".8" opacity=".6"><path d="M0 552h640M0 564h640"/></g>
+          <!-- tire -->
+          <circle cx="250" cy="340" r="200" stroke-width="2"/>
+          <circle cx="250" cy="340" r="186" opacity=".6"/>
+          <circle cx="250" cy="340" r="120"/>
+          <circle cx="250" cy="340" r="40"/>
+          <g opacity=".7"><circle cx="250" cy="280" r="7"/><circle cx="307" cy="321" r="7"/><circle cx="285" cy="389" r="7"/><circle cx="215" cy="389" r="7"/><circle cx="193" cy="321" r="7"/></g>
+          <path d="M250 110v460M20 340h460" class="ctr" stroke="#4E6E9E" stroke-dasharray="16 4 3 4"/>
+        </g>
+        <!-- chock -->
+        <path d="M290 540 A205 205 0 0 0 429 432 L455 412 L505 412 L640 540 Z" fill="#E7C55A" fill-opacity=".9" stroke="#FFE7A3" stroke-width="1.6"/>
+        <path d="M335 520 A205 205 0 0 0 410 452" stroke="#29B6FF" stroke-width="7" fill="none" stroke-linecap="round"/>
+        <rect x="510" y="505" width="34" height="30" fill="none" stroke="#7A5A00" stroke-dasharray="4 3"/>
+        <!-- signal waves from chock to tower -->
+        <g stroke="#29B6FF" fill="none" stroke-width="2" opacity=".85">
+          <path d="M540 470 a26 26 0 0 1 26 -26"/><path d="M532 470 a40 40 0 0 1 40 -40" opacity=".6"/><path d="M524 470 a54 54 0 0 1 54 -54" opacity=".35"/>
+        </g>
+        <!-- tower -->
+        <g transform="translate(560,170) scale(2.2)">
+          <rect x="-11" y="-4" width="22" height="5" rx="1" fill="#3B4252"/>
+          <rect x="-10" y="1" width="20" height="16" fill="#5A1E27"/>
+          <rect x="-10" y="17" width="20" height="16" fill="#5C4A1A"/>
+          <rect x="-10" y="33" width="20" height="16" fill="url(#glowG)"/>
+          <rect x="-12" y="49" width="24" height="9" rx="1" fill="#3B4252"/>
+          <rect x="-2" y="58" width="4" height="30" fill="#3B4252"/>
+        </g>
+        <circle cx="560" cy="261" r="60" fill="#1A9E55" opacity=".15"/>
+        <g font-family="IBM Plex Mono, monospace" font-size="11" fill="#8FB3EA">
+          <text x="30" y="600">DES-00 · CONCEITO · ESCALA S/E</text>
+          <text x="30" y="618">S1 PRESENÇA DA CARRETA · S2 POSIÇÃO DO TRAVA-RODAS</text>
+        </g>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 02 PROBLEMA ============ -->
+<section class="slide" data-n="2">
+  <div class="stripe"></div>
+  <header class="sh"><span class="num">02</span><div><div class="kick">Contexto</div><h2>Problema operacional e oportunidade de melhoria</h2></div><div class="doc">PRJ-TR-001 · REV.0<br>Proposta conceitual</div></header>
+  <div class="body">
+    <div style="flex:0 0 520px;display:flex;flex-direction:column;gap:14px">
+      <div class="card blue">
+        <h3>Situação atual</h3>
+        <ul class="clean">
+          <li>A instalação do trava-rodas depende <b>exclusivamente do procedimento</b> e da atenção de quem opera a doca.</li>
+          <li>De dentro da expedição, <b>não há confirmação visual direta</b> de que o dispositivo está junto ao pneu.</li>
+          <li>Durante o carregamento, a retirada do trava-rodas <b>não gera nenhum aviso</b>.</li>
+        </ul>
+      </div>
+      <div class="card" style="border-top:4px solid var(--red)">
+        <h3>Risco que queremos reduzir</h3>
+        <ul class="clean">
+          <li><b>Saída antecipada</b> da carreta com empilhadeira ou pessoa sobre o nivelador.</li>
+          <li><b>Deslocamento gradual</b> da carreta pelo esforço repetido da empilhadeira entrando e saindo.</li>
+          <li>Abertura de vão entre a doca e a carreta durante a operação.</li>
+        </ul>
+      </div>
+      <div class="callout blue"><b>Oportunidade:</b> transformar uma verificação manual em uma condição <b>monitorada continuamente</b>, visível e audível para toda a equipe da expedição.</div>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column">
+      <div class="dwg" style="flex:1">
+        <svg viewBox="0 0 640 420">
+          <rect width="640" height="420" fill="none"/>
+          <!-- dock -->
+          <rect x="0" y="210" width="230" height="160" fill="url(#hConc)" class="ln"/>
+          <rect x="0" y="370" width="640" height="50" fill="url(#hEarth)"/>
+          <line x1="0" y1="370" x2="640" y2="370" class="ln" stroke-width="2"/>
+          <rect x="230" y="220" width="12" height="36" fill="url(#hRubber)"/>
+          <!-- leveler with lip dropping -->
+          <path d="M150 210 L230 210 L262 222" class="ln" stroke-width="3"/>
+          <!-- forklift on leveler -->
+          <g transform="translate(120,128)">
+            <rect x="0" y="30" width="70" height="40" rx="4" fill="#F2A900" stroke="#7A5600"/>
+            <path d="M14 30 L22 0 L56 0 L60 30" fill="none" stroke="#3B4252" stroke-width="3"/>
+            <rect x="70" y="-30" width="6" height="100" fill="#3B4252"/>
+            <rect x="76" y="64" width="38" height="5" fill="#3B4252"/>
+            <circle cx="16" cy="74" r="10" fill="#2E3440"/><circle cx="58" cy="74" r="10" fill="#2E3440"/>
+          </g>
+          <!-- trailer moving away -->
+          <g transform="translate(300,0)">
+            <rect x="0" y="40" width="340" height="170" fill="#F4F7FB" class="ln"/>
+            <rect x="0" y="210" width="340" height="14" fill="url(#hSteel)" class="ln th"/>
+            <rect x="0" y="40" width="7" height="184" fill="#3B4252"/>
+            <circle cx="170" cy="322" r="48" fill="#2E3440"/><circle cx="170" cy="322" r="26" fill="#C9D1DC"/>
+            <circle cx="275" cy="322" r="48" fill="#2E3440"/><circle cx="275" cy="322" r="26" fill="#C9D1DC"/>
+          </g>
+          <!-- gap -->
+          <path d="M244 160 h50" stroke="#D7263D" stroke-width="2" marker-start="url(#arrR)" marker-end="url(#arrR)"/>
+          <text x="269" y="150" text-anchor="middle" class="lbl" fill="#D7263D" style="fill:#D7263D">VÃO</text>
+          <path d="M450 110 h120" stroke="#D7263D" stroke-width="4" marker-end="url(#arrR)"/>
+          <text x="450" y="98" class="lbl" style="fill:#D7263D">MOVIMENTO INESPERADO</text>
+          <!-- missing chock -->
+          <path d="M520 370 L534 346 L548 346 L566 370Z" fill="none" stroke="#D7263D" stroke-width="1.6" stroke-dasharray="4 3"/>
+          <text x="500" y="398" class="lbl" style="fill:#D7263D">trava-rodas ausente</text>
+          <g transform="translate(560,40)"><circle r="18" fill="#D7263D"/><text y="1" text-anchor="middle" dominant-baseline="central" fill="#fff" font-weight="700" font-size="22">!</text></g>
+          <text x="12" y="402" class="lbls">CENÁRIO DE RISCO · ESQUEMÁTICO · S/E</text>
+        </svg>
+      </div>
+      <p class="muted" style="font-size:13px;margin-top:8px">Ilustração conceitual de um cenário de risco reconhecido em operações de doca. Não representa ocorrência registrada na unidade.</p>
+    </div>
+  </div>
+  <footer class="sf"><span>Ball Corporation · Unidade Três Rios (RJ) · Expedição</span><span>Proposta conceitual — para discussão técnica</span><span class="pg">02 / 15</span></footer>
+</section>
+
+<!-- ============ 03 OBJETIVO ============ -->
+<section class="slide" data-n="3">
+  <div class="stripe"></div>
+  <header class="sh"><span class="num">03</span><div><div class="kick">Escopo</div><h2>Objetivo do projeto</h2></div><div class="doc">PRJ-TR-001 · REV.0<br>Proposta conceitual</div></header>
+  <div class="body" style="flex-direction:column;gap:22px;justify-content:center">
+    <div style="font:600 25px/1.35 var(--sans);color:var(--navy);max-width:1080px;border-left:5px solid var(--blue);padding-left:20px">
+      Garantir que nenhuma carreta permaneça na doca <span style="color:var(--red)">sem o trava-rodas instalado</span> sem que a equipe seja <span style="color:var(--blue)">alertada de forma contínua, visível e audível</span>.
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px">
+      <div class="card blue"><div class="tag t-blu">R1</div><h3 style="margin-top:8px">Detectar a carreta</h3><p style="font-size:14.5px">Identificar a carreta <b>corretamente posicionada</b> na doca, sem depender de ação do motorista.</p></div>
+      <div class="card blue"><div class="tag t-blu">R2</div><h3 style="margin-top:8px">Confirmar o trava-rodas</h3><p style="font-size:14.5px">Reconhecer a <b>posição efetiva de trabalho</b> junto ao pneu — e não apenas a proximidade do dispositivo.</p></div>
+      <div class="card blue"><div class="tag t-blu">R3</div><h3 style="margin-top:8px">Alertar continuamente</h3><p style="font-size:14.5px">Sirene e torre <b>vermelha</b> enquanto a condição for insegura; retorno imediato se o dispositivo for retirado.</p></div>
+      <div class="card blue"><div class="tag t-blu">R4</div><h3 style="margin-top:8px">Falhar com segurança</h3><p style="font-size:14.5px">Falha de sensor, cabo ou energia <b>nunca</b> pode resultar em indicação verde.</p></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div class="card"><h3>Dentro do escopo do protótipo</h3>
+        <ul class="clean" style="font-size:14.5px"><li>1 doca piloto, sensores, controlador, sirene e torre sinalizadora.</li><li>Lógica de estados com diagnóstico de falhas.</li><li>Testes de detecção, de falhas e de audibilidade.</li></ul></div>
+      <div class="card"><h3>Fora do escopo nesta fase</h3>
+        <ul class="clean" style="font-size:14.5px"><li>Bloqueio mecânico do veículo ou travamento automático.</li><li>Intertravamento com nivelador/porta — <b>avaliar após a análise de risco</b>.</li><li>Qualquer alteração em equipamentos sem validação de Engenharia e Segurança.</li></ul></div>
+    </div>
+  </div>
+  <footer class="sf"><span>Ball Corporation · Unidade Três Rios (RJ) · Expedição</span><span>Proposta conceitual — para discussão técnica</span><span class="pg">03 / 15</span></footer>
+</section>
+
+<!-- ============ 04 CONCEITO ============ -->
+<section class="slide" data-n="4">
+  <div class="stripe"></div>
+  <header class="sh"><span class="num">04</span><div><div class="kick">Solução</div><h2>Conceito geral: sentir → decidir → avisar</h2></div><div class="doc">PRJ-TR-001 · REV.0<br>Proposta conceitual</div></header>
+  <div class="body" style="flex-direction:column;gap:18px">
+    <div class="dwg" style="padding:10px">
+      <svg viewBox="0 0 1160 300">
+        <!-- column titles -->
+        <g class="lblb" font-size="15"><text x="40" y="26">1 · SENTIR</text><text x="470" y="26">2 · DECIDIR</text><text x="830" y="26">3 · AVISAR</text></g>
+        <!-- S1 -->
+        <rect x="40" y="44" width="300" height="100" rx="6" fill="#fff" class="ln"/>
+        <rect x="58" y="72" width="44" height="26" rx="3" class="sens"/><path d="M102 85 l40 -16 v32z" class="zone"/>
+        <text x="160" y="76" class="lblb">S1 · PRESENÇA DA CARRETA</text>
+        <text x="160" y="96" class="lbls">sensor sob a doca, janela</text><text x="160" y="110" class="lbls">de distância ajustável</text>
+        <text x="58" y="132" class="lbls">sinal: carreta posicionada (1/0)</text>
+        <!-- S2 -->
+        <rect x="40" y="164" width="300" height="110" rx="6" fill="#fff" class="ln"/>
+        <path d="M60 252 A44 44 0 0 0 92 222 L100 216 L114 216 L140 252Z" fill="#E7C55A" stroke="#5a4a10"/>
+        <path d="M68 246 A44 44 0 0 0 88 226" stroke="var(--sensor)" stroke-width="5" fill="none"/>
+        <text x="160" y="196" class="lblb">S2 · TRAVA-RODAS</text>
+        <text x="160" y="216" class="lbls">S2A contato com o pneu</text><text x="160" y="230" class="lbls">S2B assentamento na base</text>
+        <text x="58" y="266" class="lbls">sinal: posição de trabalho confirmada</text>
+        <!-- controller -->
+        <rect x="470" y="70" width="270" height="180" rx="8" fill="#EAF1FB" stroke="var(--blue)" stroke-width="2"/>
+        <rect x="500" y="98" width="120" height="70" rx="3" fill="#fff" class="ln"/>
+        <g><circle cx="514" cy="114" r="4" fill="#1A9E55"/><circle cx="528" cy="114" r="4" fill="#F2A900"/><circle cx="542" cy="114" r="4" fill="#D7263D"/></g>
+        <rect x="510" y="128" width="96" height="28" fill="#0B1F3A"/><text x="558" y="146" text-anchor="middle" font-family="IBM Plex Mono" font-size="10" fill="#7CE0A8">S1·S2·DIAG</text>
+        <text x="634" y="112" class="lblb">CONTROLADOR</text>
+        <text x="634" y="130" class="lbls">lógica de</text><text x="634" y="144" class="lbls">estados +</text><text x="634" y="158" class="lbls">diagnóstico</text>
+        <text x="500" y="200" class="lbl">VERDE SÓ COM</text><text x="500" y="216" class="lbl">CONFIRMAÇÃO POSITIVA</text>
+        <text x="500" y="236" class="lbls">falha = indisponível (amarelo)</text>
+        <!-- arrows -->
+        <path d="M340 94 C 400 94 410 130 466 130" class="ln" stroke="var(--blue)" stroke-width="2.2" marker-end="url(#arrB)"/>
+        <path d="M340 219 C 400 219 410 190 466 190" class="ln" stroke="var(--blue)" stroke-width="2.2" marker-end="url(#arrB)"/>
+        <path d="M740 130 C 790 130 790 94 826 94" class="ln" stroke="var(--blue)" stroke-width="2.2" marker-end="url(#arrB)"/>
+        <path d="M740 190 C 790 190 790 219 826 219" class="ln" stroke="var(--blue)" stroke-width="2.2" marker-end="url(#arrB)"/>
+        <!-- siren -->
+        <rect x="830" y="44" width="290" height="100" rx="6" fill="#fff" class="ln"/>
+        <g transform="translate(856,70)"><rect x="0" y="8" width="22" height="30" rx="2" fill="#3B4252"/><path d="M22 12 L50 0 L50 46 L22 34Z" fill="#D7263D"/><g stroke="#D7263D" fill="none" stroke-width="2"><path d="M58 12 q8 11 0 22"/><path d="M66 6 q13 17 0 34"/></g></g>
+        <text x="950" y="78" class="lblb">SIRENE INDUSTRIAL</text>
+        <text x="950" y="98" class="lbls">interior da expedição</text><text x="950" y="112" class="lbls">contínua = inseguro</text><text x="950" y="126" class="lbls">intermitente = falha</text>
+        <!-- tower -->
+        <rect x="830" y="164" width="290" height="110" rx="6" fill="#fff" class="ln"/>
+        <g transform="translate(870,176) scale(1.25)">
+          <rect x="-11" y="-4" width="22" height="5" rx="1" fill="#3B4252"/>
+          <rect x="-10" y="1" width="20" height="16" fill="url(#glowR)"/><rect x="-10" y="17" width="20" height="16" fill="#F2A900"/><rect x="-10" y="33" width="20" height="16" fill="url(#glowG)"/>
+          <rect x="-12" y="49" width="24" height="9" rx="1" fill="#3B4252"/>
+        </g>
+        <text x="950" y="196" class="lblb">TORRE SINALIZADORA</text>
+        <g class="lbls"><text x="950" y="216"><tspan fill="#D7263D">■</tspan> vermelho: inseguro</text><text x="950" y="232"><tspan fill="#C98C00">■</tspan> amarelo: falha/indisponível</text><text x="950" y="248"><tspan fill="#1A9E55">■</tspan> verde: bloqueio confirmado</text></g>
+        <!-- future -->
+        <rect x="470" y="268" width="270" height="26" rx="4" fill="none" stroke="#7d93b5" stroke-dasharray="5 4"/>
+        <text x="605" y="285" text-anchor="middle" class="lbls">FUTURO (avaliar): saída p/ intertravamento da doca</text>
+        <path d="M605 250 v16" stroke="#7d93b5" stroke-dasharray="3 3"/>
+      </svg>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
+      <div class="callout blue"><b>Confirmação positiva.</b> O estado “seguro” exige que todos os sinais estejam presentes e coerentes. Ausência de sinal nunca equivale a seguro.</div>
+      <div class="callout"><b>Diagnóstico contínuo.</b> Cabo rompido, curto, sensor travado ou perda de alimentação levam ao estado <b>INDISPONÍVEL</b>.</div>
+      <div class="callout red"><b>Advertência ≠ bloqueio físico.</b> O alarme reforça o procedimento; quem impede o movimento da carreta é o trava-rodas.</div>
+    </div>
+  </div>
+  <footer class="sf"><span>Ball Corporation · Unidade Três Rios (RJ) · Expedição</span><span>Proposta conceitual — para discussão técnica</span><span class="pg">04 / 15</span></footer>
+</section>
+
+<!-- ============ 05 DES-01 VISÃO GERAL ============ -->
+<section class="slide" data-n="5">
+  <div class="stripe"></div>
+  <header class="sh"><span class="num">05</span><div><div class="kick">Ilustração 1 · DES-01</div><h2>Visão geral da doca com todos os componentes</h2></div><div class="doc">Corte lateral esquemático<br>Escala: S/E</div></header>
+  <div class="body" style="gap:20px">
+    <div class="dwg" style="flex:0 0 900px">
+      <svg viewBox="0 0 1000 500">
+        <!-- roof & interior -->
+        <rect x="0" y="22" width="402" height="12" fill="url(#hSteel)" class="ln th"/>
+        <rect x="0" y="34" width="14" height="296" fill="url(#hConc)" class="ln th"/>
+        <rect x="380" y="34" width="20" height="100" fill="url(#hConc)" class="ln"/>
+        <text x="190" y="190" text-anchor="middle" class="lbls">EXPEDIÇÃO (INTERIOR)</text>
+        <text x="700" y="474" text-anchor="middle" class="lbls">PÁTIO (EXTERIOR)</text>
+        <!-- rolled door -->
+        <rect x="383" y="134" width="14" height="14" rx="2" fill="#C9D1DC" class="ln th"/>
+        <!-- dock body -->
+        <rect x="14" y="330" width="366" height="132" fill="url(#hConc)" class="ln"/>
+        <line x1="14" y1="330" x2="380" y2="330" class="ln" stroke-width="2.4"/>
+        <rect x="372" y="330" width="8" height="8" fill="url(#hSteel)" class="ln th"/>
+        <!-- leveler -->
+        <rect x="292" y="332" width="80" height="24" fill="#fff" class="ln th hid"/>
+        <path d="M292 330 L380 330 L414 325" class="ln" stroke-width="3.2"/>
+        <!-- bumper -->
+        <rect x="380" y="290" width="16" height="40" rx="2" fill="url(#hRubber)"/>
+        <!-- yard -->
+        <rect x="380" y="440" width="620" height="22" fill="url(#hConc)" class="ln th"/>
+        <line x1="380" y1="440" x2="1000" y2="440" class="ln" stroke-width="2"/>
+        <!-- floor cable channel -->
+        <rect x="400" y="442" width="410" height="9" fill="#fff" stroke="#22416E" stroke-width=".9"/>
+        <path d="M806 446 H392" class="cable" stroke-width="1.8"/>
+        <!-- trailer -->
+        <rect x="398" y="64" width="602" height="256" fill="#F4F7FB" class="ln"/>
+        <rect x="398" y="64" width="8" height="270" fill="#3B4252"/>
+        <rect x="398" y="320" width="602" height="14" fill="url(#hSteel)" class="ln th"/>
+        <rect x="520" y="334" width="480" height="12" fill="url(#hSteel)" class="ln th"/>
+        <!-- pallets inside -->
+        <g class="ln th" fill="#E4EAF3">
+          <rect x="430" y="226" width="96" height="84"/><rect x="430" y="310" width="96" height="10" fill="#B9A27A"/>
+          <rect x="536" y="226" width="96" height="84"/><rect x="536" y="310" width="96" height="10" fill="#B9A27A"/>
+          <rect x="430" y="142" width="96" height="84"/><rect x="536" y="142" width="96" height="84"/>
+        </g>
+        <g class="ln th" stroke-opacity=".35"><path d="M430 254h96M430 282h96M536 254h96M536 282h96M430 170h96M430 198h96M536 170h96M536 198h96"/></g>
+        <!-- break line -->
+        <path d="M990 60 L990 200 L982 210 L998 222 L990 232 L990 350" fill="none" stroke="#22416E" stroke-width="1.2"/>
+        <!-- ICC bar -->
+        <rect x="414" y="334" width="9" height="48" fill="url(#hSteel)" class="ln th"/>
+        <rect x="408" y="380" width="22" height="14" fill="#7F8FA6" class="ln th"/>
+        <!-- wheels -->
+        <g>
+          <circle cx="580" cy="390" r="50" fill="#2E3440"/><circle cx="580" cy="390" r="30" fill="#C9D1DC" stroke="#4C566A"/><circle cx="580" cy="390" r="8" fill="#4C566A"/>
+          <circle cx="690" cy="390" r="50" fill="#2E3440"/><circle cx="690" cy="390" r="30" fill="#C9D1DC" stroke="#4C566A"/><circle cx="690" cy="390" r="8" fill="#4C566A"/>
+          <path d="M520 346 h230" class="ctr"/><path d="M580 330 v120 M690 330 v120" class="ctr"/>
+        </g>
+        <!-- chock -->
+        <path d="M704 440 A52 52 0 0 0 737 412 L746 404 L760 404 L802 440 Z" fill="#E7C55A" stroke="#5a4a10" stroke-width="1.4"/>
+        <path d="M712 432 A52 52 0 0 0 731 414" stroke="var(--sensor)" stroke-width="4" fill="none"/>
+        <rect x="760" y="418" width="16" height="12" class="sens"/>
+        <!-- chock cable to channel -->
+        <path d="M800 438 q8 0 8 8" class="cable" stroke-width="1.8"/>
+        <!-- S1 -->
+        <rect x="380" y="371" width="14" height="14" class="sens"/>
+        <path d="M376 368 h22 v-4" fill="none" stroke="#3B4252" stroke-width="2"/>
+        <path d="M394 378 L410 372 L410 384Z" class="zone" style="fill-opacity:.35"/>
+        <!-- junction box CX-1 -->
+        <rect x="381" y="404" width="16" height="26" rx="2" fill="#DCE3EC" stroke="#22416E"/>
+        <path d="M392 446 V430" class="cable" stroke-width="1.8"/>
+        <path d="M388 385 V404" class="cable" stroke-width="1.8"/>
+        <!-- conduit to panel -->
+        <path d="M381 417 H60 V300" class="cable"/>
+        <!-- panel QC-01 -->
+        <rect x="20" y="200" width="70" height="100" rx="2" fill="#E8EDF3" class="ln"/>
+        <rect x="26" y="206" width="58" height="88" fill="none" class="ln th"/>
+        <circle cx="38" cy="222" r="4" fill="#1A9E55"/><circle cx="50" cy="222" r="4" fill="#F2A900"/><rect x="78" y="244" width="4" height="16" fill="#3B4252"/>
+        <!-- panel to signals -->
+        <path d="M55 200 V46 H366 V76" class="cable"/>
+        <path d="M300 46 V54" class="cable"/>
+        <!-- siren -->
+        <g transform="translate(286,54)"><rect x="0" y="4" width="14" height="20" rx="2" fill="#3B4252"/><path d="M14 7 L34 0 L34 28 L14 21Z" fill="#D7263D"/><g stroke="#D7263D" fill="none" stroke-width="1.6"><path d="M40 7 q6 7 0 14"/><path d="M46 3 q10 11 0 22"/></g></g>
+        <!-- tower -->
+        <rect x="366" y="96" width="14" height="4" fill="#3B4252"/>
+        <g transform="translate(355,78) scale(.85)">
+          <rect x="-11" y="-4" width="22" height="5" rx="1" fill="#3B4252"/>
+          <rect x="-10" y="1" width="20" height="16" fill="#7A2430"/><rect x="-10" y="17" width="20" height="16" fill="#7A6020"/><rect x="-10" y="33" width="20" height="16" fill="url(#glowG)"/>
+          <rect x="-12" y="49" width="24" height="9" rx="1" fill="#3B4252"/>
+        </g>
+        <!-- balloons -->
+        <g class="lead">
+          <path d="M760 110 L860 40"/><path d="M200 330 L170 370"/><path d="M330 330 L300 300"/><path d="M388 300 L330 262"/>
+          <path d="M650 420 L620 478"/><path d="M770 412 L860 360"/><path d="M768 424 L900 410"/><path d="M387 378 L330 400"/>
+          <path d="M600 446 L560 482"/><path d="M389 425 L470 482"/><path d="M90 250 L140 250"/><path d="M366 96 L320 130"/><path d="M300 66 L240 110"/>
+        </g>
+        <g class="bal"><circle cx="872" cy="32" r="12"/><text x="872" y="32">1</text></g>
+        <g class="bal"><circle cx="162" cy="380" r="12"/><text x="162" y="380">2</text></g>
+        <g class="bal"><circle cx="292" cy="290" r="12"/><text x="292" y="290">3</text></g>
+        <g class="bal"><circle cx="320" cy="256" r="12"/><text x="320" y="256">4</text></g>
+        <g class="bal"><circle cx="616" cy="488" r="12"/><text x="616" y="488">5</text></g>
+        <g class="bal"><circle cx="872" cy="352" r="12"/><text x="872" y="352">6</text></g>
+        <g class="bal s"><circle cx="912" cy="408" r="12"/><text x="912" y="408">7</text></g>
+        <g class="bal s"><circle cx="318" cy="404" r="12"/><text x="318" y="404">8</text></g>
+        <g class="bal"><circle cx="552" cy="490" r="12"/><text x="552" y="490">9</text></g>
+        <g class="bal"><circle cx="480" cy="488" r="12"/><text x="480" y="488">10</text></g>
+        <g class="bal"><circle cx="152" cy="250" r="12"/><text x="152" y="250">11</text></g>
+        <g class="bal"><circle cx="312" cy="138" r="12"/><text x="312" y="138">12</text></g>
+        <g class="bal"><circle cx="232" cy="116" r="12"/><text x="232" y="116">13</text></g>
+      </svg>
+      <div class="tb">
+        <div><b>DESENHO</b>DES-01</div><div><b>TÍTULO</b>VISÃO GERAL DA DOCA</div><div><b>REV</b>0</div>
+        <div><b>ESCALA</b>S/E</div><div><b>STATUS</b>CONCEITUAL</div><div><b>FOLHA</b>1/5</div>
+      </div>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;gap:12px">
+      <div class="legend">
+        <span class="b">1</span><span>Carreta acoplada</span>
+        <span class="b">2</span><span>Estrutura da doca (concreto + cantoneira)</span>
+        <span class="b">3</span><span>Nivelador de doca</span>
+        <span class="b">4</span><span>Para-choque de doca</span>
+        <span class="b">5</span><span>Rodas traseiras (eixo tandem)</span>
+        <span class="b">6</span><span>Trava-rodas junto ao pneu</span>
+        <span class="b s">7</span><span><b>S2</b> · sensor do trava-rodas</span>
+        <span class="b s">8</span><span><b>S1</b> · sensor de presença sob a doca</span>
+        <span class="b">9</span><span>Canaleta de piso reforçada (cabos)</span>
+        <span class="b">10</span><span>CX-1 · caixa de junção</span>
+        <span class="b">11</span><span>QC-01 · painel de controle</span>
+        <span class="b">12</span><span>Torre sinalizadora</span>
+        <span class="b">13</span><span>Sirene (interior, parte superior)</span>
+      </div>
+      <div class="callout blue" style="font-size:13px;margin-top:auto"><b>Linha tracejada azul:</b> rota de cabos sugerida. Trajeto definitivo a definir no levantamento de campo.</div>
+    </div>
+  </div>
+  <footer class="sf"><span>Ball Corporation · Unidade Três Rios (RJ) · Expedição</span><span>Desenho conceitual — não usar para fabricação</span><span class="pg">05 / 15</span></footer>
+</section>
+
+<!-- ============ 06 DES-02 TRAVA-RODAS ============ -->
+<section class="slide" data-n="6">
+  <div class="stripe"></div>
+  <header class="sh"><span class="num">06</span><div><div class="kick">Ilustração 2 · DES-02</div><h2>Detalhamento do sensor do trava-rodas</h2></div><div class="doc">Vista lateral ampliada<br>Componentes internos em linha oculta</div></header>
+  <div class="body" style="gap:22px">
+    <div class="dwg" style="flex:0 0 760px">
+      <svg viewBox="0 0 720 440">
+        <!-- tire -->
+        <defs><clipPath id="clipT"><rect x="0" y="0" width="720" height="350"/></clipPath></defs>
+        <g clip-path="url(#clipT)">
+          <circle cx="110" cy="170" r="170" fill="#2E3440"/>
+          <circle cx="110" cy="170" r="160" fill="none" stroke="#4C566A" stroke-width="2" stroke-dasharray="10 6"/>
+          <circle cx="110" cy="170" r="104" fill="#C9D1DC" stroke="#4C566A"/>
+          <circle cx="110" cy="170" r="34" fill="#8C99AB" stroke="#4C566A"/>
+          <g fill="#4C566A"><circle cx="110" cy="118" r="6"/><circle cx="160" cy="154" r="6"/><circle cx="141" cy="212" r="6"/><circle cx="79" cy="212" r="6"/><circle cx="60" cy="154" r="6"/></g>
+        </g>
+        <path d="M110 0 V360 M0 170 H300" class="ctr"/>
+        <text x="20" y="30" class="lbl" style="fill:#fff">PNEU DA CARRETA</text>
+        <!-- ground + plate -->
+        <rect x="0" y="350" width="720" height="40" fill="url(#hConc)" class="ln th"/>
+        <rect x="150" y="340" width="460" height="10" fill="url(#hSteel)" class="ln"/>
+        <line x1="0" y1="340" x2="150" y2="340" class="ln" stroke-width="2"/><line x1="610" y1="340" x2="720" y2="340" class="ln" stroke-width="2"/>
+        <rect x="0" y="340" width="150" height="10" fill="url(#hConc)"/><rect x="610" y="340" width="110" height="10" fill="url(#hConc)"/>
+        <!-- chock -->
+        <path d="M147 340 A174 174 0 0 0 268 244 L290 228 L340 228 L488 340 Z" fill="#E7C55A" stroke="#5a4a10" stroke-width="1.8"/>
+        <path d="M300 228 V206 H330 V228" fill="none" stroke="#3B4252" stroke-width="5" stroke-linejoin="round"/>
+        <!-- paddle -->
+        <path d="M184 328 A174 174 0 0 0 252 270" stroke="var(--sensor)" stroke-width="7" fill="none" stroke-linecap="round"/>
+        <circle cx="184" cy="328" r="4.5" fill="#fff" stroke="#035b8a" stroke-width="2"/>
+        <polyline points="226,305 232,300 236,309 242,304 246,313 252,308 256,317" fill="none" stroke="#3B4252" stroke-width="1.4"/>
+        <!-- S2A switch hidden -->
+        <rect x="262" y="256" width="44" height="28" fill="#fff" fill-opacity=".6" class="ln hid" stroke="#5a4a10"/>
+        <line x1="262" y1="268" x2="253" y2="268" stroke="#3B4252" stroke-width="3"/>
+        <!-- S2B inductive -->
+        <rect x="330" y="306" width="30" height="28" fill="#fff" fill-opacity=".6" class="ln hid" stroke="#5a4a10"/>
+        <rect x="330" y="334" width="30" height="5" class="sens"/>
+        <!-- electronics -->
+        <rect x="378" y="286" width="54" height="30" fill="#fff" fill-opacity=".6" class="ln hid" stroke="#5a4a10"/>
+        <!-- internal wiring -->
+        <path d="M306 270 H370 V286 M360 320 H378 M432 302 H462 V326" fill="none" stroke="#22416E" stroke-width="1" stroke-dasharray="3 2"/>
+        <!-- gland + spiral cable -->
+        <rect x="462" y="322" width="12" height="10" fill="#3B4252"/>
+        <g fill="none" stroke="#0A3C8C" stroke-width="1.6">
+          <ellipse cx="486" cy="322" rx="7" ry="11"/><ellipse cx="498" cy="322" rx="7" ry="11"/><ellipse cx="510" cy="322" rx="7" ry="11"/><ellipse cx="522" cy="322" rx="7" ry="11"/><ellipse cx="534" cy="322" rx="7" ry="11"/><ellipse cx="546" cy="322" rx="7" ry="11"/><ellipse cx="558" cy="322" rx="7" ry="11"/><ellipse cx="570" cy="322" rx="7" ry="11"/>
+        </g>
+        <rect x="582" y="314" width="26" height="16" rx="3" fill="#7F8FA6" stroke="#22416E"/>
+        <path d="M608 322 H720" class="cable"/>
+        <text x="640" y="314" class="lbls">p/ CX-1</text>
+        <!-- force arrow -->
+        <path d="M190 258 L214 296" stroke="#D7263D" stroke-width="2.4" marker-end="url(#arrR)"/>
+        <rect x="196" y="236" width="58" height="16" fill="#fff" fill-opacity=".85"/><text x="200" y="248" class="lbl" style="fill:#D7263D">F pneu</text>
+        <!-- detail A -->
+        <circle cx="345" cy="338" r="16" fill="none" stroke="#22416E" stroke-dasharray="4 3"/>
+        <path d="M358 328 L548 150" fill="none" stroke="#22416E" stroke-dasharray="4 3"/>
+        <circle cx="600" cy="110" r="84" fill="#fff" stroke="#22416E" stroke-width="1.4"/>
+        <clipPath id="clipA"><circle cx="600" cy="110" r="83"/></clipPath>
+        <g clip-path="url(#clipA)">
+          <rect x="500" y="20" width="200" height="80" fill="#E7C55A"/>
+          <rect x="560" y="40" width="80" height="58" fill="#fff" stroke="#5a4a10" stroke-dasharray="5 3"/>
+          <rect x="560" y="92" width="80" height="8" class="sens"/>
+          <rect x="500" y="124" width="200" height="30" fill="url(#hSteel)" stroke="#22416E"/>
+          <rect x="500" y="154" width="200" height="50" fill="url(#hConc)"/>
+          <path d="M664 100 V124" class="dim" marker-start="url(#dimA)" marker-end="url(#dimA)"/>
+          <path d="M640 100 H676 M640 124 H676" class="dim"/>
+        </g>
+        <text x="600" y="16" text-anchor="middle" class="lbl">DETALHE A</text>
+        <text x="600" y="210" text-anchor="middle" class="lbls">folga ≤ alcance útil do sensor</text>
+        <text x="600" y="223" text-anchor="middle" class="lbls">só existe com a base assentada</text>
+        <text x="682" y="116" class="lbl">s</text>
+        <!-- balloons -->
+        <g class="lead"><path d="M420 300 L470 250"/><path d="M230 280 L210 220"/><path d="M290 258 L330 200"/><path d="M345 320 L395 380"/><path d="M500 345 L540 400"/><path d="M405 300 L430 404"/><path d="M530 312 L560 270"/><path d="M315 206 L360 160"/></g>
+        <g class="bal"><circle cx="478" cy="242" r="12"/><text x="478" y="242">1</text></g>
+        <g class="bal s"><circle cx="206" cy="208" r="12"/><text x="206" y="208">2</text></g>
+        <g class="bal s"><circle cx="338" cy="190" r="12"/><text x="338" y="190">3</text></g>
+        <g class="bal s"><circle cx="400" cy="392" r="12"/><text x="400" y="392">4</text></g>
+        <g class="bal"><circle cx="546" cy="410" r="12"/><text x="546" y="410">5</text></g>
+        <g class="bal"><circle cx="436" cy="416" r="12"/><text x="436" y="416">6</text></g>
+        <g class="bal"><circle cx="566" cy="262" r="12"/><text x="566" y="262">7</text></g>
+        <g class="bal"><circle cx="368" cy="152" r="12"/><text x="368" y="152">8</text></g>
+      </svg>
+      <div class="tb">
+        <div><b>DESENHO</b>DES-02</div><div><b>TÍTULO</b>TRAVA-RODAS INSTRUMENTADO</div><div><b>REV</b>0</div>
+        <div><b>ESCALA</b>S/E</div><div><b>STATUS</b>CONCEITUAL</div><div><b>FOLHA</b>2/5</div>
+      </div>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;gap:10px">
+      <div class="legend" style="font-size:12.5px;gap:3px 8px">
+        <span class="b">1</span><span>Corpo metálico do trava-rodas</span>
+        <span class="b s">2</span><span>Pá de contato basculante (toca o pneu)</span>
+        <span class="b s">3</span><span><b>S2A</b> fim de curso de segurança, abertura positiva (NF + NA)</span>
+        <span class="b s">4</span><span><b>S2B</b> sensor indutivo na base</span>
+        <span class="b">5</span><span>Chapa-alvo de aço embutida no piso (zona de trabalho)</span>
+        <span class="b">6</span><span>Caixa eletrônica / junção protegida</span>
+        <span class="b">7</span><span>Cabo espiral + conector industrial</span>
+        <span class="b">8</span><span>Alça de manuseio</span>
+      </div>
+      <div class="card" style="padding:12px 14px">
+        <h3 style="font-size:17px">Por que “estar perto” não basta</h3>
+        <table class="t" style="font-size:12px">
+          <tr><th>Situação</th><th>S2A</th><th>S2B</th><th>Leitura</th></tr>
+          <tr><td>No suporte de guarda ou na mão</td><td>0</td><td>0</td><td><span class="tag t-red">inseguro</span></td></tr>
+          <tr><td>No piso, afastado do pneu</td><td>0</td><td>1</td><td><span class="tag t-red">inseguro</span></td></tr>
+          <tr><td>Pá pressionada fora do piso (manual)</td><td>1</td><td>0</td><td><span class="tag t-amb">incoerente</span></td></tr>
+          <tr><td>Assentado + pneu encostado ≥ t<sub>conf</sub></td><td>1</td><td>1</td><td><span class="tag t-grn">seguro</span></td></tr>
+        </table>
+      </div>
+      <p class="muted" style="font-size:12px;line-height:1.35">Alternativas a avaliar com a Manutenção: sensor magnético codificado (dificulta burla com ímã), trava-rodas preso a braço articulado, transmissão sem fio com supervisão de comunicação.</p>
+    </div>
+  </div>
+  <footer class="sf"><span>Ball Corporation · Unidade Três Rios (RJ) · Expedição</span><span>Desenho conceitual — não usar para fabricação</span><span class="pg">06 / 15</span></footer>
+</section>
+
+<!-- ============ 07 DES-03 SENSOR INFERIOR ============ -->
+<section class="slide" data-n="7">
+  <div class="stripe"></div>
+  <header class="sh"><span class="num">07</span><div><div class="kick">Ilustração 3 · DES-03</div><h2>Detalhamento do sensor de presença da carreta</h2></div><div class="doc">Corte lateral da doca<br>Região inferior · Escala: S/E</div></header>
+  <div class="body" style="gap:22px">
+    <div class="dwg" style="flex:0 0 640px">
+      <svg viewBox="0 0 700 440">
+        <!-- dock concrete -->
+        <rect x="0" y="110" width="300" height="330" fill="url(#hConc)" class="ln"/>
+        <rect x="286" y="110" width="14" height="14" fill="url(#hSteel)" class="ln th"/>
+        <rect x="160" y="102" width="140" height="8" fill="url(#hSteel)" class="ln th"/>
+        <path d="M300 104 L340 98" class="ln" stroke-width="4"/>
+        <text x="20" y="96" class="lbls">PISO DA EXPEDIÇÃO</text>
+        <!-- yard -->
+        <rect x="300" y="350" width="400" height="30" fill="url(#hConc)" class="ln th"/>
+        <rect x="300" y="380" width="400" height="60" fill="url(#hEarth)"/>
+        <line x1="300" y1="350" x2="700" y2="350" class="ln" stroke-width="2"/>
+        <!-- bumper -->
+        <rect x="300" y="122" width="20" height="58" rx="3" fill="url(#hRubber)"/>
+        <!-- trailer -->
+        <rect x="322" y="0" width="378" height="94" fill="#F4F7FB" class="ln"/>
+        <rect x="322" y="94" width="378" height="10" fill="url(#hSteel)" class="ln th"/>
+        <rect x="322" y="0" width="8" height="118" fill="#3B4252"/>
+        <rect x="330" y="104" width="120" height="14" fill="url(#hSteel)" class="ln th"/>
+        <rect x="450" y="104" width="250" height="22" fill="url(#hSteel)" class="ln th"/>
+        <rect x="352" y="118" width="10" height="90" fill="url(#hSteel)" class="ln th"/>
+        <rect x="342" y="206" width="30" height="22" fill="#7F8FA6" class="ln"/>
+        <circle cx="660" cy="300" r="50" fill="#2E3440"/><circle cx="660" cy="300" r="30" fill="#C9D1DC"/>
+        <text x="520" y="50" class="lbls">CARRETA ESTACIONADA</text>
+        <!-- detection zone & window -->
+        <path d="M304 217 L580 186 L580 248 Z" class="zone"/>
+        <path d="M335 214 L470 199 L470 235 L335 220Z" fill="var(--sensor)" fill-opacity=".22"/>
+        <path d="M304 217 H600" class="ctr"/>
+        <!-- sensor niche + guard -->
+        <rect x="262" y="196" width="38" height="44" fill="#fff" class="ln th"/>
+        <path d="M258 192 H312 V200 M258 244 H312 V236" fill="none" stroke="#3B4252" stroke-width="4"/>
+        <rect x="266" y="207" width="36" height="20" rx="2" class="sens"/>
+        <path d="M274 207 v20 M282 207 v20" stroke="#035b8a"/>
+        <circle cx="266" cy="200" r="2" fill="#3B4252"/><circle cx="266" cy="236" r="2" fill="#3B4252"/>
+        <!-- conduit -->
+        <path d="M262 217 H40 V440" class="cable"/>
+        <text x="48" y="208" class="lbls">eletroduto embutido → CX-1 / QC-01</text>
+        <!-- dimensions -->
+        <path d="M304 270 H342" class="dim" marker-start="url(#dimA)" marker-end="url(#dimA)"/>
+        <path d="M335 278 H470" class="dim" marker-start="url(#dimA)" marker-end="url(#dimA)"/>
+        <path d="M304 240 v38 M342 228 v48 M335 236 v50 M470 235 v52" class="dim" stroke-dasharray="2 2"/>
+        <text x="300" y="296" class="lbl">d</text>
+        <text x="370" y="296" class="lbl">janela d<tspan baseline-shift="sub" font-size="8">mín</tspan> … d<tspan baseline-shift="sub" font-size="8">máx</tspan></text>
+        <text x="370" y="310" class="lbls">(ajuste em campo / teach-in)</text>
+        <path d="M300 350 V110" class="dim" stroke-dasharray="2 2" opacity=".0"/>
+        <path d="M280 350 V258" class="dim" marker-start="url(#dimA)" marker-end="url(#dimA)" opacity=".0"/>
+        <path d="M228 350 V217" class="dim" marker-start="url(#dimA)" marker-end="url(#dimA)"/>
+        <text x="214" y="300" class="lbl" transform="rotate(-90 214 300)">h (a definir)</text>
+        <!-- balloons -->
+        <g class="lead"><path d="M150 160 L120 140"/><path d="M312 196 L380 160"/><path d="M290 217 L250 270"/><path d="M362 214 L462 150"/><path d="M520 222 L560 170"/></g>
+        <g class="bal"><circle cx="110" cy="134" r="12"/><text x="110" y="134">1</text></g>
+        <g class="bal"><circle cx="392" cy="154" r="12"/><text x="392" y="154">2</text></g>
+        <g class="bal s"><circle cx="246" cy="282" r="12"/><text x="246" y="282">3</text></g>
+        <g class="bal"><circle cx="470" cy="146" r="12"/><text x="470" y="146">4</text></g>
+        <g class="bal s"><circle cx="566" cy="162" r="12"/><text x="566" y="162">5</text></g>
+      </svg>
+      <div class="tb">
+        <div><b>DESENHO</b>DES-03</div><div><b>TÍTULO</b>SENSOR S1 SOB A DOCA</div><div><b>REV</b>0</div>
+        <div><b>ESCALA</b>S/E</div><div><b>STATUS</b>CONCEITUAL</div><div><b>FOLHA</b>3/5</div>
+      </div>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;gap:10px">
+      <div class="legend" style="font-size:12.5px;gap:3px 8px">
+        <span class="b">1</span><span>Estrutura de concreto da doca</span>
+        <span class="b">2</span><span>Suporte de aço com proteção contra impacto, em recuo na face da doca</span>
+        <span class="b s">3</span><span><b>S1</b> sensor com ajuste de ângulo (furos oblongos)</span>
+        <span class="b">4</span><span>Alvo: para-choque traseiro / chassi</span>
+        <span class="b s">5</span><span>Região de detecção — só aceita alvo dentro da janela</span>
+      </div>
+      <table class="t" style="font-size:11.5px">
+        <tr><th>Tecnologia S1</th><th>Alcance</th><th>Poeira / água</th><th>Parecer</th></tr>
+        <tr><td><b>Indutivo</b></td><td>milímetros</td><td>excelente</td><td>Inadequado como principal: carreta não encosta no sensor</td></tr>
+        <tr><td><b>Fotoelétrico</b> c/ supressão de fundo</td><td>até ~1–2 m</td><td>sensível a lente suja</td><td>Viável, baixo custo; exige limpeza e alinhamento</td></tr>
+        <tr><td><b>Ultrassônico</b> c/ janela</td><td>até alguns metros</td><td>boa tolerância</td><td><span class="tag t-grn">avaliar 1º</span> robusto a superfícies variadas</td></tr>
+        <tr><td><b>Radar</b> industrial</td><td>metros</td><td>muito boa</td><td><span class="tag t-grn">avaliar 1º</span> mais robusto; custo maior</td></tr>
+        <tr><td><b>Laço indutivo</b> no piso</td><td>área do laço</td><td>excelente</td><td>Robusto, mas exige corte do piso</td></tr>
+      </table>
+      <p class="muted" style="font-size:11.5px;line-height:1.35">Parecer qualitativo para orientar testes. A escolha final depende de ensaio em campo com carretas de diferentes modelos e alturas.</p>
+    </div>
+  </div>
+  <footer class="sf"><span>Ball Corporation · Unidade Três Rios (RJ) · Expedição</span><span>Desenho conceitual — não usar para fabricação</span><span class="pg">07 / 15</span></footer>
+</section>
+
+<!-- ============ 08 DES-04 PAINEL ============ -->
+<section class="slide" data-n="8">
+  <div class="stripe"></div>
+  <header class="sh"><span class="num">08</span><div><div class="kick">Ilustração 4 · DES-04</div><h2>Arquitetura eletrônica e painel de controle QC-01</h2></div><div class="doc">Vista frontal, porta aberta<br>Escala: S/E</div></header>
+  <div class="body" style="gap:22px">
+    <div class="dwg" style="flex:0 0 470px">
+      <svg viewBox="0 0 520 520">
+        <rect x="16" y="10" width="488" height="480" rx="8" fill="#C9D2DE" stroke="#22416E" stroke-width="2"/>
+        <rect x="34" y="28" width="452" height="444" fill="#F3F5F8" class="ln th"/>
+        <!-- ducts -->
+        <g fill="#B8C2CF" stroke="#8D9AAD">
+          <rect x="34" y="28" width="452" height="18"/><rect x="34" y="150" width="452" height="18"/><rect x="34" y="276" width="452" height="18"/><rect x="34" y="400" width="452" height="18"/>
+          <rect x="34" y="46" width="16" height="354"/><rect x="470" y="46" width="16" height="354"/>
+        </g>
+        <!-- DIN rails -->
+        <g fill="#AEB8C5"><rect x="54" y="96" width="412" height="8"/><rect x="54" y="218" width="412" height="8"/><rect x="54" y="344" width="412" height="8"/></g>
+        <!-- row 1 protections & PSU -->
+        <g>
+          <rect x="62" y="62" width="40" height="72" rx="2" fill="#fff" class="ln th"/><rect x="74" y="86" width="16" height="22" fill="#3B4252"/><text x="82" y="128" text-anchor="middle" class="lbls">Q1</text>
+          <rect x="108" y="62" width="34" height="72" rx="2" fill="#fff" class="ln th"/><rect x="117" y="80" width="16" height="10" fill="#1A9E55"/><text x="125" y="128" text-anchor="middle" class="lbls">F1</text>
+          <rect x="148" y="62" width="22" height="72" rx="2" fill="#fff" class="ln th"/><rect x="153" y="86" width="12" height="20" fill="#3B4252"/><text x="159" y="128" text-anchor="middle" class="lbls">F2</text>
+          <rect x="190" y="58" width="130" height="80" rx="3" fill="#E6EAF0" class="ln"/>
+          <g stroke="#9AA8BA"><path d="M200 70h110M200 76h110M200 82h110M200 88h110"/></g>
+          <text x="255" y="112" text-anchor="middle" class="lbl">24 Vcc</text><text x="255" y="128" text-anchor="middle" class="lbls">PS1</text>
+          <rect x="336" y="58" width="76" height="80" rx="3" fill="#E6EAF0" class="ln"/>
+          <rect x="356" y="76" width="34" height="18" rx="2" fill="none" stroke="#22416E"/><rect x="390" y="81" width="4" height="8" fill="#22416E"/><rect x="359" y="79" width="18" height="12" fill="#1A9E55"/>
+          <text x="374" y="128" text-anchor="middle" class="lbls">UPS1</text>
+        </g>
+        <!-- row 2 controller + relays -->
+        <g>
+          <rect x="62" y="180" width="170" height="88" rx="3" fill="#fff" class="ln" stroke="var(--blue)" stroke-width="2"/>
+          <rect x="74" y="192" width="80" height="34" fill="#0B1F3A"/><text x="114" y="213" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#7CE0A8">RUN · OK</text>
+          <g><circle cx="170" cy="198" r="4" fill="#1A9E55"/><circle cx="184" cy="198" r="4" fill="#1A9E55"/><circle cx="198" cy="198" r="4" fill="#F2A900"/><circle cx="212" cy="198" r="4" fill="#9AA8BA"/>
+             <circle cx="170" cy="214" r="4" fill="#9AA8BA"/><circle cx="184" cy="214" r="4" fill="#1A9E55"/><circle cx="198" cy="214" r="4" fill="#9AA8BA"/><circle cx="212" cy="214" r="4" fill="#9AA8BA"/></g>
+          <g fill="#7F8FA6"><rect x="74" y="236" width="146" height="8"/></g>
+          <text x="147" y="260" text-anchor="middle" class="lbl" style="fill:var(--blue)">K1 CONTROLADOR</text>
+          <rect x="240" y="180" width="54" height="88" rx="3" fill="#fff" class="ln"/><text x="267" y="260" text-anchor="middle" class="lbls">K1.1 E/S</text>
+          <g fill="#9AA8BA"><circle cx="252" cy="198" r="3"/><circle cx="264" cy="198" r="3"/><circle cx="276" cy="198" r="3"/><circle cx="252" cy="210" r="3"/><circle cx="264" cy="210" r="3"/></g>
+          <g><rect x="312" y="184" width="20" height="80" rx="2" fill="#fff" class="ln th"/><rect x="336" y="184" width="20" height="80" rx="2" fill="#fff" class="ln th"/><rect x="360" y="184" width="20" height="80" rx="2" fill="#fff" class="ln th"/><rect x="384" y="184" width="20" height="80" rx="2" fill="#fff" class="ln th"/><rect x="408" y="184" width="20" height="80" rx="2" fill="#fff" stroke="#7d93b5" stroke-dasharray="3 2"/>
+             <g fill="#D7263D"><rect x="318" y="194" width="8" height="8"/></g><g fill="#7A2430"><rect x="342" y="194" width="8" height="8"/></g><g fill="#F2A900"><rect x="366" y="194" width="8" height="8"/></g><g fill="#1A9E55"><rect x="390" y="194" width="8" height="8"/></g>
+          </g>
+          <text x="370" y="260" text-anchor="middle" class="lbls">KA1…KA5</text>
+        </g>
+        <!-- row 3 terminals -->
+        <g>
+          <g id="term"></g>
+        </g>
+        <g id="terms"></g>
+        <text x="130" y="392" text-anchor="middle" class="lbls">X1 · entradas S1 / S2 / S3</text>
+        <text x="330" y="392" text-anchor="middle" class="lbls">X2 · saídas / alimentação</text>
+        <!-- glands -->
+        <g fill="#3B4252"><rect x="80" y="490" width="20" height="10"/><rect x="130" y="490" width="20" height="10"/><rect x="180" y="490" width="20" height="10"/><rect x="230" y="490" width="20" height="10"/><rect x="330" y="490" width="20" height="10"/><rect x="380" y="490" width="20" height="10"/></g>
+        <text x="260" y="444" text-anchor="middle" class="lbls">placa de montagem · canaletas · trilhos DIN</text>
+        <!-- balloons -->
+        <g class="lead"><path d="M82 62 L60 2"/><path d="M125 62 L130 2"/><path d="M255 58 L250 2"/><path d="M374 58 L380 2"/><path d="M62 220 L4 240"/><path d="M370 184 L440 160"/><path d="M80 360 L4 380"/><path d="M280 360 L506 360"/><path d="M190 500 L190 512"/></g>
+      </svg>
+      <div class="tb">
+        <div><b>DESENHO</b>DES-04</div><div><b>TÍTULO</b>PAINEL QC-01</div><div><b>REV</b>0</div>
+        <div><b>ESCALA</b>S/E</div><div><b>STATUS</b>CONCEITUAL</div><div><b>FOLHA</b>4/5</div>
+      </div>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;gap:12px">
+      <div class="legend" style="grid-template-columns:26px 1fr 26px 1fr;font-size:12.5px;gap:4px 8px">
+        <span class="b">1</span><span><b>Q1</b> disjuntor de entrada</span><span class="b">6</span><span><b>KA1…KA5</b> relés de interface das saídas</span>
+        <span class="b">2</span><span><b>F1</b> DPS (surtos)</span><span class="b">7</span><span><b>X1</b> bornes de entrada (S1/S2/S3)</span>
+        <span class="b">3</span><span><b>PS1</b> fonte 24 Vcc · <b>F2</b> proteção 24 V</span><span class="b">8</span><span><b>X2</b> bornes de saída e alimentação</span>
+        <span class="b">4</span><span><b>UPS1</b> autonomia p/ sinalizar falha de rede</span><span class="b">9</span><span>Prensa-cabos pela base</span>
+        <span class="b">5</span><span><b>K1 + K1.1</b> controlador de segurança + E/S</span><span></span><span></span>
+      </div>
+      <table class="t" style="font-size:12px">
+        <tr><th style="width:78px">E/S</th><th>Sinal</th><th>Princípio</th></tr>
+        <tr><td class="mono" style="white-space:nowrap">I1 · I2</td><td>S1 presença da carreta</td><td>saída + diagnóstico / dois canais</td></tr>
+        <tr><td class="mono" style="white-space:nowrap">I3 · I4</td><td>S2A contato com pneu (NF + NA)</td><td>antivalência: discrepância = falha</td></tr>
+        <tr><td class="mono">I5</td><td>S2B base assentada</td><td>PNP, corrente de repouso</td></tr>
+        <tr><td class="mono">I6</td><td>S3 trava-rodas no suporte de guarda</td><td>plausibilidade</td></tr>
+        <tr><td class="mono" style="white-space:nowrap">I7 · I8</td><td>Reconhecimento de falha · status da fonte</td><td>reconhecer não cala estado inseguro</td></tr>
+        <tr><td class="mono" style="white-space:nowrap">T1 · T2</td><td>Pulsos de teste</td><td>detectar curto entre fios / 24 V</td></tr>
+        <tr><td class="mono">Q1</td><td>Sirene</td><td>contínua / intermitente</td></tr>
+        <tr><td class="mono">Q2…Q4</td><td>Torre: vermelho · amarelo · verde</td><td>verde só com confirmação</td></tr>
+        <tr><td class="mono">Q5</td><td>Reserva — intertravamento futuro</td><td>somente após análise de risco</td></tr>
+      </table>
+    </div>
+  </div>
+  <footer class="sf"><span>Ball Corporation · Unidade Três Rios (RJ) · Expedição</span><span>Desenho conceitual — não usar para fabricação</span><span class="pg">08 / 15</span></footer>
+</section>
+
+<!-- ============ 09 DES-05 FLUXOGRAMA ============ -->
+<section class="slide" data-n="9">
+  <div class="stripe"></div>
+  <header class="sh"><span class="num">09</span><div><div class="kick">Ilustração 5 · DES-05</div><h2>Lógica de funcionamento e fluxograma operacional</h2></div><div class="doc">Ciclo contínuo de varredura<br>Diagnóstico em todos os estados</div></header>
+  <div class="body" style="gap:20px">
+    <div class="dwg" style="flex:0 0 840px">
+      <svg viewBox="0 0 900 500">
+        <g font-family="Barlow, sans-serif">
+        <!-- start -->
+        <rect x="320" y="10" width="260" height="38" rx="19" fill="#0B1F3A"/>
+        <text x="450" y="34" text-anchor="middle" fill="#fff" font-weight="600" font-size="14">ENERGIZAÇÃO + AUTODIAGNÓSTICO</text>
+        <path d="M450 48 V70" class="ln" marker-end="url(#arr)"/>
+        <!-- D1 fault -->
+        <path d="M450 72 L560 110 L450 148 L340 110Z" fill="#FFF8E1" stroke="#C98C00" stroke-width="1.6"/>
+        <text x="450" y="106" text-anchor="middle" font-weight="700" font-size="14" fill="#0B1F3A">Falha ou perda</text><text x="450" y="123" text-anchor="middle" font-weight="700" font-size="14" fill="#0B1F3A">de sinal?</text>
+        <path d="M560 110 H640" class="ln" marker-end="url(#arr)"/><text x="590" y="102" class="lbl">SIM</text>
+        <rect x="642" y="72" width="240" height="78" rx="6" fill="#F2A900"/>
+        <text x="762" y="96" text-anchor="middle" font-weight="700" font-size="15" fill="#0B1F3A">FALHA · INDISPONÍVEL</text>
+        <text x="762" y="116" text-anchor="middle" font-size="12.5" fill="#0B1F3A">amarelo piscante · bip intermitente</text>
+        <text x="762" y="134" text-anchor="middle" font-size="12.5" font-weight="700" fill="#0B1F3A">VERDE BLOQUEADO</text>
+        <path d="M762 72 V29 H584" class="ln" marker-end="url(#arr)"/><text x="600" y="22" class="lbls">reparo + reconhecimento</text>
+        <path d="M450 148 V176" class="ln" marker-end="url(#arr)"/><text x="458" y="166" class="lbl">NÃO</text>
+        <!-- D2 carreta -->
+        <path d="M450 178 L560 214 L450 250 L340 214Z" fill="#EAF1FB" stroke="#0A3C8C" stroke-width="1.6"/>
+        <text x="450" y="210" text-anchor="middle" font-weight="700" font-size="14" fill="#0B1F3A">Carreta detectada?</text><text x="450" y="227" text-anchor="middle" font-size="12" fill="#0A3C8C">(S1)</text>
+        <path d="M340 214 H262" class="ln" marker-end="url(#arr)"/><text x="292" y="206" class="lbl">NÃO</text>
+        <rect x="40" y="186" width="220" height="56" rx="6" fill="#fff" stroke="#5B6B82" stroke-width="1.6"/>
+        <text x="150" y="210" text-anchor="middle" font-weight="700" font-size="15" fill="#0B1F3A">ESPERA</text>
+        <text x="150" y="229" text-anchor="middle" font-size="12.5" fill="#5B6B82">torre apagada · alarme desligado</text>
+        <path d="M150 186 V110 H336" class="ln" marker-end="url(#arr)"/>
+        <path d="M450 250 V276" class="ln" marker-end="url(#arr)"/><text x="458" y="266" class="lbl">SIM</text>
+        <!-- process -->
+        <rect x="320" y="278" width="260" height="46" rx="4" fill="#fff" stroke="#0A3C8C" stroke-width="1.6"/>
+        <text x="450" y="298" text-anchor="middle" font-weight="700" font-size="14" fill="#0B1F3A">Verificar trava-rodas</text>
+        <text x="450" y="315" text-anchor="middle" font-size="12" fill="#0A3C8C">S2A contato pneu · S2B base · S3 suporte</text>
+        <path d="M450 324 V346" class="ln" marker-end="url(#arr)"/>
+        <!-- D3 -->
+        <path d="M450 348 L580 392 L450 436 L320 392Z" fill="#EAF1FB" stroke="#0A3C8C" stroke-width="1.6"/>
+        <text x="450" y="388" text-anchor="middle" font-weight="700" font-size="14" fill="#0B1F3A">Confirmado e coerente</text><text x="450" y="405" text-anchor="middle" font-weight="700" font-size="14" fill="#0B1F3A">por t ≥ t<tspan font-size="10" baseline-shift="sub">conf</tspan>?</text>
+        <path d="M320 392 H262" class="ln" marker-end="url(#arr)"/><text x="282" y="384" class="lbl">NÃO</text>
+        <path d="M580 392 H640" class="ln" marker-end="url(#arr)"/><text x="594" y="384" class="lbl">SIM</text>
+        <rect x="40" y="362" width="220" height="62" rx="6" fill="#D7263D"/>
+        <text x="150" y="388" text-anchor="middle" font-weight="700" font-size="15" fill="#fff">INSEGURO</text>
+        <text x="150" y="408" text-anchor="middle" font-size="12.5" fill="#fff">vermelho · sirene contínua</text>
+        <rect x="642" y="362" width="240" height="62" rx="6" fill="#1A9E55"/>
+        <text x="762" y="388" text-anchor="middle" font-weight="700" font-size="15" fill="#fff">BLOQUEIO CONFIRMADO</text>
+        <text x="762" y="408" text-anchor="middle" font-size="12.5" fill="#fff">verde · sirene desligada</text>
+        <!-- loop -->
+        <path d="M150 424 V466 H762 V424" class="ln" stroke="#0A3C8C" stroke-dasharray="6 4"/>
+        <path d="M150 466 H20 V110 H150" class="ln" stroke="#0A3C8C" stroke-dasharray="6 4" marker-end="url(#arrB)"/>
+        <rect x="270" y="456" width="390" height="22" fill="#FBFCFE"/>
+        <text x="465" y="471" text-anchor="middle" class="lbl" style="fill:#0A3C8C">MONITORAMENTO CONTÍNUO · retirada ⇒ volta ao VERMELHO</text>
+        </g>
+      </svg>
+      <div class="tb">
+        <div><b>DESENHO</b>DES-05</div><div><b>TÍTULO</b>FLUXOGRAMA OPERACIONAL</div><div><b>REV</b>0</div>
+        <div><b>ESCALA</b>—</div><div><b>STATUS</b>CONCEITUAL</div><div><b>FOLHA</b>5/5</div>
+      </div>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;gap:10px">
+      <h3>Tratamento de falhas</h3>
+      <div class="card" style="padding:10px 12px;font-size:13px;line-height:1.35"><b>Cabo rompido</b><br>Entradas em corrente de repouso: fio aberto = sinal ausente = nunca seguro.</div>
+      <div class="card" style="padding:10px 12px;font-size:13px;line-height:1.35"><b>Curto-circuito</b><br>Pulsos de teste e contatos NF/NA antivalentes revelam fios em curto ou colados.</div>
+      <div class="card" style="padding:10px 12px;font-size:13px;line-height:1.35"><b>Sensor travado</b><br>Plausibilidade: S2 confirmado sem carreta, ou trava-rodas no suporte e no piso ao mesmo tempo.</div>
+      <div class="card" style="padding:10px 12px;font-size:13px;line-height:1.35"><b>Perda de alimentação</b><br>Verde desenergizado por padrão; UPS1 mantém a sinalização de falha por tempo limitado.</div>
+      <div class="callout" style="font-size:12.5px"><b>t<sub>conf</sub></b> (ex.: alguns segundos) evita oscilação no momento da instalação. Valor a definir em teste.</div>
+    </div>
+  </div>
+  <footer class="sf"><span>Ball Corporation · Unidade Três Rios (RJ) · Expedição</span><span>Lógica conceitual — sujeita à análise de risco</span><span class="pg">09 / 15</span></footer>
+</section>
+
+<!-- ============ 10 MATRIZ ============ -->
+<section class="slide" data-n="10">
+  <div class="stripe"></div>
+  <header class="sh"><span class="num">10</span><div><div class="kick">Estados</div><h2>Matriz de estados e alarmes</h2></div><div class="doc">PRJ-TR-001 · REV.0<br>Cenários A–E</div></header>
+  <div class="body" style="flex-direction:column;gap:14px;padding-top:16px">
+    <table class="t" id="matrix" style="font-size:13.5px">
+      <tr><th style="width:60px">Cen.</th><th>Situação</th><th style="width:110px">S1 carreta</th><th style="width:140px">S2 trava-rodas</th><th style="width:110px">Diagnóstico</th><th style="width:150px">Sirene</th><th style="width:130px">Torre</th><th style="width:150px">Estado</th></tr>
+      <tr><td class="mono"><b>A</b></td><td>Nenhuma carreta na doca</td><td>0</td><td>qualquer</td><td>OK</td><td>desligada</td><td><span class="tw"><i></i><i></i><i></i></span></td><td><span class="tag" style="background:#EEF1F5;color:#5B6B82">espera</span></td></tr>
+      <tr><td class="mono"><b>B</b></td><td>Carreta posicionada, sem trava-rodas</td><td>1</td><td>0</td><td>OK</td><td><b style="color:var(--red)">contínua</b></td><td><span class="tw"><i class="r"></i><i></i><i></i></span></td><td><span class="tag t-red">inseguro</span></td></tr>
+      <tr><td class="mono"><b>C</b></td><td>Carreta posicionada e trava-rodas instalado</td><td>1</td><td>1 (≥ t<sub>conf</sub>)</td><td>OK</td><td>desligada</td><td><span class="tw"><i></i><i></i><i class="g"></i></span></td><td><span class="tag t-grn">bloqueio confirmado</span></td></tr>
+      <tr><td class="mono"><b>D</b></td><td>Trava-rodas retirado durante o carregamento</td><td>1</td><td>1 → 0</td><td>OK</td><td><b style="color:var(--red)">contínua, imediata</b></td><td><span class="tw"><i class="r"></i><i></i><i></i></span></td><td><span class="tag t-red">inseguro</span></td></tr>
+      <tr><td class="mono"><b>E</b></td><td>Falha de sensor, cabo rompido ou perda de alimentação</td><td>?</td><td>?</td><td><b style="color:#9A6B00">FALHA</b></td><td><b style="color:#9A6B00">intermitente</b></td><td><span class="tw"><i></i><i class="a"></i><i></i></span></td><td><span class="tag t-amb">indisponível</span></td></tr>
+    </table>
+    <div class="dwg" style="padding:8px 10px 4px">
+      <div class="mono" style="font-size:11px;color:var(--muted);margin-bottom:2px">DIAGRAMA TEMPORAL — SEQUÊNCIA TÍPICA DE OPERAÇÃO</div>
+      <svg id="timing" viewBox="0 0 1180 222"></svg>
+    </div>
+    <div class="callout" style="font-size:13px;margin-top:-4px"><b>Ponto para discussão:</b> na saída, a retirada do trava-rodas aciona o alarme até a carreta deixar a doca. Avaliar com Segurança se essa sinalização é desejada ou se haverá uma <b>liberação de saída controlada</b>.</div>
+  </div>
+  <footer class="sf"><span>Ball Corporation · Unidade Três Rios (RJ) · Expedição</span><span>Lógica conceitual — sujeita à análise de risco</span><span class="pg">10 / 15</span></footer>
+</section>
+
+<!-- ============ 11 COMPONENTES ============ -->
+<section class="slide" data-n="11">
+  <div class="stripe"></div>
+  <header class="sh"><span class="num">11</span><div><div class="kick">Viabilidade técnica</div><h2>Componentes e viabilidade técnica</h2></div><div class="doc">Lista preliminar por doca<br>Sem modelos comerciais definidos</div></header>
+  <div class="body" style="flex-direction:column;gap:10px;padding-top:14px">
+    <table class="t" style="font-size:11.6px;line-height:1.25">
+      <tr><th style="width:150px">Componente</th><th style="width:170px">Função</th><th style="width:200px">Tecnologia recomendada</th><th>Características a avaliar</th><th style="width:62px">Qtd/doca</th><th style="width:230px">Observações de instalação</th></tr>
+      <tr><td><b>S1 · Sensor de presença</b></td><td>Detectar carreta posicionada</td><td>Ultrassônico ou radar com janela de distância (alt.: fotoelétrico)</td><td>Alcance, janela ajustável, IP, faixa de temperatura, imunidade a vibração e respingos</td><td class="mono">1</td><td>Recuo na face da doca, suporte protegido contra impacto</td></tr>
+      <tr><td><b>S2A · Fim de curso</b></td><td>Confirmar contato com o pneu</td><td>Chave de segurança com abertura positiva, contatos NF + NA</td><td>Robustez mecânica, curso, vida útil, IP, cabo/conector</td><td class="mono">1</td><td>Interna ao trava-rodas, acionada pela pá de contato</td></tr>
+      <tr><td><b>S2B · Indutivo de base</b></td><td>Confirmar assentamento na zona</td><td>Indutivo blindado, faceado, PNP</td><td>Distância de comutação, montagem embutida, resistência a impacto</td><td class="mono">1</td><td>Base do trava-rodas + chapa-alvo de aço no piso</td></tr>
+      <tr><td><b>S3 · Suporte de guarda</b> <span class="tag t-blu">opcional</span></td><td>Plausibilidade (guardado × em uso)</td><td>Indutivo ou magnético codificado</td><td>Simplicidade, imunidade a burla</td><td class="mono">1</td><td>No suporte fixo do trava-rodas</td></tr>
+      <tr><td><b>Controlador</b></td><td>Lógica, diagnóstico, saídas</td><td>Relé/controlador de segurança programável (ou CLP, se apenas advertência)</td><td>Nº de E/S, pulsos de teste, diagnóstico, expansão para 6 docas</td><td class="mono">1</td><td>Painel QC-01; definição conforme análise de risco</td></tr>
+      <tr><td><b>Fonte + autonomia</b></td><td>Alimentação 24 Vcc</td><td>Fonte industrial DIN + módulo UPS/bateria</td><td>Potência com folga, sinal de status, autonomia</td><td class="mono">1</td><td>Dimensionar com sirene e torre ligadas</td></tr>
+      <tr><td><b>Sirene industrial</b></td><td>Alerta sonoro</td><td>Sirene multitom, volume ajustável</td><td>Nível sonoro acima do ruído ambiente medido, tons distintos</td><td class="mono">1</td><td>Interior, parte superior da doca; medir ruído antes</td></tr>
+      <tr><td><b>Torre sinalizadora</b></td><td>Estado visual</td><td>LED, vermelho/amarelo/verde</td><td>Visibilidade sob iluminação do galpão, fixação anti-vibração</td><td class="mono">1</td><td>Visível da área de carregamento</td></tr>
+      <tr><td><b>Cabos e conectores</b></td><td>Interligação</td><td>Cabo PUR flexível, cabo espiral, conectores industriais</td><td>Resistência a óleo, abrasão, UV, flexões</td><td class="mono">lote</td><td>Canaleta de piso reforçada ou eletroduto</td></tr>
+      <tr><td><b>Caixa de proteção</b></td><td>Abrigar junções / painel</td><td>Caixa metálica ou policarbonato</td><td>Grau de proteção, resistência a impacto</td><td class="mono">1–2</td><td>CX-1 na face da doca; QC-01 no interior</td></tr>
+      <tr><td><b>Suportes metálicos</b></td><td>Fixar e proteger sensores</td><td>Aço com pintura/galvanização</td><td>Rigidez, ajuste angular, proteção contra impacto</td><td class="mono">lote</td><td>Fabricação interna possível</td></tr>
+      <tr><td><b>Proteções elétricas</b></td><td>Segurança da instalação</td><td>Disjuntor, DPS, fusíveis, aterramento</td><td>Coordenação, seletividade, NR-10</td><td class="mono">1 kit</td><td>Alimentação a partir de circuito identificado</td></tr>
+    </table>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <div class="callout blue" style="font-size:13px"><b>Investimento:</b> não estimado nesta fase. O orçamento será montado na Etapa 1 a partir de <b>cotações reais</b>, separando itens de estoque/manutenção dos itens a comprar.</div>
+      <div class="callout" style="font-size:13px"><b>Viabilidade:</b> todos os itens são componentes industriais de mercado, compatíveis com montagem e manutenção pela equipe interna.</div>
+    </div>
+  </div>
+  <footer class="sf"><span>Ball Corporation · Unidade Três Rios (RJ) · Expedição</span><span>Lista preliminar — sujeita a levantamento técnico</span><span class="pg">11 / 15</span></footer>
+</section>
+
+<!-- ============ 12 SEGURANÇA ============ -->
+<section class="slide" data-n="12">
+  <div class="stripe"></div>
+  <header class="sh"><span class="num">12</span><div><div class="kick">Segurança e normas</div><h2>Segurança e análise de riscos</h2></div><div class="doc">Avaliação preliminar<br>Sem declaração de conformidade</div></header>
+  <div class="body" style="gap:22px">
+    <div style="flex:0 0 430px;display:flex;flex-direction:column;gap:12px">
+      <h3>Alerta ou intertravamento?</h3>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div class="card" style="border-left:5px solid var(--green);padding:10px 14px"><span class="tag t-grn">Nível 1 · este protótipo</span><p style="font-size:13.5px;margin-top:5px"><b>Advertência:</b> sirene + torre reforçam o procedimento. Não impede fisicamente o movimento.</p></div>
+        <div class="card" style="border-left:5px solid var(--amber);padding:10px 14px"><span class="tag t-amb">Nível 2 · avaliar</span><p style="font-size:13.5px;margin-top:5px"><b>Intertravamento</b> com a liberação da doca (nivelador, porta, semáforo externo). Exige função de segurança dimensionada pela análise de risco.</p></div>
+        <div class="card" style="border-left:5px solid var(--blue);padding:10px 14px"><span class="tag t-blu">Nível 3 · referência</span><p style="font-size:13.5px;margin-top:5px"><b>Retenção mecânica</b> do veículo. Fora do escopo; citada para comparação na hierarquia de controles.</p></div>
+      </div>
+      <h3 style="margin-top:4px">Referências a considerar</h3>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        <span class="tag t-blu">NR-12</span><span class="tag t-blu">NR-10</span><span class="tag t-blu">NR-11</span><span class="tag t-blu">ABNT NBR ISO 12100</span><span class="tag t-blu">ABNT NBR ISO 13849-1</span><span class="tag t-blu">ISO 7731</span><span class="tag t-blu">IEC 60529 (IP)</span>
+      </div>
+      <div class="callout red" style="font-size:12.5px">Conformidade normativa <b>não é declarada</b>. Deve ser avaliada e validada por profissional legalmente habilitado, com ART, após a análise de risco.</div>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;gap:10px">
+      <h3>Modos de falha e tratamento</h3>
+      <table class="t" style="font-size:12.2px">
+        <tr><th style="width:170px">Modo de falha</th><th>Efeito possível</th><th>Detecção / mitigação proposta</th></tr>
+        <tr><td><b>Sensor S1 falha</b></td><td>Carreta não detectada → sem alarme</td><td>Diagnóstico do sensor, teste periódico, plausibilidade com S2</td></tr>
+        <tr><td><b>Sensor S2 travado “ativo”</b></td><td>Falso verde</td><td>Dois princípios (S2A + S2B), NF/NA antivalente, plausibilidade com S3</td></tr>
+        <tr><td><b>Rompimento de cabo</b></td><td>Perda de sinal</td><td>Corrente de repouso: fio aberto ⇒ inseguro/falha, nunca verde</td></tr>
+        <tr><td><b>Curto entre condutores</b></td><td>Sinal falso permanente</td><td>Pulsos de teste e monitoramento cruzado</td></tr>
+        <tr><td><b>Perda de alimentação</b></td><td>Sistema mudo</td><td>Verde desenergizado; UPS1 sinaliza falha; torre apagada = indisponível (procedimento)</td></tr>
+        <tr><td><b>Impacto mecânico</b></td><td>Sensor danificado/desalinhado</td><td>Recuo na doca, suportes de aço, cabos protegidos no piso</td></tr>
+        <tr><td><b>Acionamento indevido / burla</b></td><td>Falso verde</td><td>Exigir contato + assentamento + tempo; alvo codificado; sem bypass no painel</td></tr>
+        <tr><td><b>Alarme ignorado</b></td><td>Perda de eficácia</td><td>Evitar falsos alarmes, tons distintos, treinamento e procedimento</td></tr>
+      </table>
+    </div>
+  </div>
+  <footer class="sf"><span>Ball Corporation · Unidade Três Rios (RJ) · Expedição</span><span>Validação obrigatória por Engenharia e Segurança do Trabalho</span><span class="pg">12 / 15</span></footer>
+</section>
+
+<!-- ============ 13 PLANO ============ -->
+<section class="slide" data-n="13">
+  <div class="stripe"></div>
+  <header class="sh"><span class="num">13</span><div><div class="kick">Implementação</div><h2>Plano de desenvolvimento do protótipo</h2></div><div class="doc">4 etapas com pontos de decisão<br>Prazos a definir em conjunto</div></header>
+  <div class="body" style="flex-direction:column;gap:16px">
+    <svg viewBox="0 0 1180 70" style="width:100%">
+      <line x1="40" y1="34" x2="1140" y2="34" stroke="#0A3C8C" stroke-width="3"/>
+      <g font-family="IBM Plex Mono" font-size="11" font-weight="600">
+        <circle cx="150" cy="34" r="16" fill="#0A3C8C"/><text x="150" y="38" text-anchor="middle" fill="#fff">1</text>
+        <circle cx="440" cy="34" r="16" fill="#0A3C8C"/><text x="440" y="38" text-anchor="middle" fill="#fff">2</text>
+        <circle cx="735" cy="34" r="16" fill="#0A3C8C"/><text x="735" y="38" text-anchor="middle" fill="#fff">3</text>
+        <circle cx="1030" cy="34" r="16" fill="#0A3C8C"/><text x="1030" y="38" text-anchor="middle" fill="#fff">4</text>
+        <g fill="#F2A900"><path d="M295 22 l12 12 l-12 12 l-12 -12z"/><path d="M588 22 l12 12 l-12 12 l-12 -12z"/><path d="M882 22 l12 12 l-12 12 l-12 -12z"/></g>
+        <g fill="#7A5600" font-size="10"><text x="295" y="64" text-anchor="middle">GATE: conceito aprovado</text><text x="588" y="64" text-anchor="middle">GATE: bancada OK</text><text x="882" y="64" text-anchor="middle">GATE: validação SST/Eng.</text></g>
+      </g>
+    </svg>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px">
+      <div class="card blue"><div class="tag t-blu">Etapa 1</div><h3 style="margin-top:8px">Estudo técnico</h3>
+        <ul class="clean" style="font-size:13.5px"><li>Avaliação da doca piloto</li><li>Levantamento do trava-rodas atual</li><li>Definição dos sensores</li><li>Pontos de instalação e rota de cabos</li><li>Medição do ruído ambiente</li></ul>
+        <p class="mono" style="font-size:11px;color:var(--muted);margin-top:8px">ENTREGA: memorial + lista de material + cotações</p></div>
+      <div class="card blue"><div class="tag t-blu">Etapa 2</div><h3 style="margin-top:8px">Protótipo</h3>
+        <ul class="clean" style="font-size:13.5px"><li>Montagem do circuito em bancada</li><li>Instalação experimental</li><li>Testes de detecção</li><li>Testes de falha: cabo, curto, energia</li></ul>
+        <p class="mono" style="font-size:11px;color:var(--muted);margin-top:8px">ENTREGA: protótipo + relatório de testes</p></div>
+      <div class="card blue"><div class="tag t-blu">Etapa 3</div><h3 style="margin-top:8px">Teste operacional</h3>
+        <ul class="clean" style="font-size:13.5px"><li>Operação assistida em 1 doca</li><li>Diferentes modelos de carreta</li><li>Registro de falsos acionamentos</li><li>Audibilidade do alarme</li><li>Validação com Segurança e Engenharia</li></ul>
+        <p class="mono" style="font-size:11px;color:var(--muted);margin-top:8px">ENTREGA: parecer de validação</p></div>
+      <div class="card blue"><div class="tag t-blu">Etapa 4</div><h3 style="margin-top:8px">Expansão</h3>
+        <ul class="clean" style="font-size:13.5px"><li>Avaliar as outras 5 docas</li><li>Padronizar a solução</li><li>Procedimento operacional</li><li>Treinamento dos operadores</li><li>Plano de manutenção preventiva</li></ul>
+        <p class="mono" style="font-size:11px;color:var(--muted);margin-top:8px">ENTREGA: padrão para 6 docas</p></div>
+    </div>
+    <div class="dwg" style="padding:10px 14px;display:flex;gap:28px;align-items:center">
+      <div class="mono" style="font-size:11px;color:var(--muted);flex:0 0 150px">ROTEIRO DE TESTES DE FALHA (ETAPA 2)</div>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;flex:1;font-size:12.5px;line-height:1.3">
+        <div><b>Cortar fio</b> de cada sensor → amarelo</div><div><b>Curto</b> entre condutores → amarelo</div><div><b>Desligar rede</b> → verde apaga, falha sinalizada</div><div><b>Pá pressionada</b> fora do piso → nunca verde</div><div><b>Retirar trava-rodas</b> → vermelho imediato</div>
+      </div>
+    </div>
+  </div>
+  <footer class="sf"><span>Ball Corporation · Unidade Três Rios (RJ) · Expedição</span><span>Plano proposto — sujeito a aprovação</span><span class="pg">13 / 15</span></footer>
+</section>
+
+<!-- ============ 14 BENEFÍCIOS ============ -->
+<section class="slide" data-n="14">
+  <div class="stripe"></div>
+  <header class="sh"><span class="num">14</span><div><div class="kick">Resultados</div><h2>Benefícios esperados</h2></div><div class="doc">Benefícios qualitativos<br>Sem projeção numérica</div></header>
+  <div class="body" style="flex-direction:column;gap:20px;justify-content:center">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:18px" class="ben">
+      <div class="card blue"><svg viewBox="0 0 48 48" width="40" height="40"><rect x="4" y="14" width="30" height="20" fill="none" stroke="#0A3C8C" stroke-width="3"/><circle cx="14" cy="38" r="5" fill="#0A3C8C"/><circle cx="28" cy="38" r="5" fill="#0A3C8C"/><path d="M36 38 l8 0 l-6 -8z" fill="#E7C55A" stroke="#5a4a10"/></svg><h3>Menor risco de movimentação</h3><p style="font-size:15.5px">Redução do risco de movimentação inesperada da carreta durante o carregamento.</p></div>
+      <div class="card blue"><svg viewBox="0 0 48 48" width="40" height="40"><rect x="8" y="6" width="32" height="38" rx="3" fill="none" stroke="#0A3C8C" stroke-width="3"/><path d="M15 20 l5 5 l12 -12" stroke="#1A9E55" stroke-width="3.5" fill="none"/><path d="M15 34h18" stroke="#0A3C8C" stroke-width="3"/></svg><h3>Procedimento reforçado</h3><p style="font-size:15.5px">A instalação do trava-rodas passa a ser verificada continuamente, não apenas lembrada.</p></div>
+      <div class="card blue"><svg viewBox="0 0 48 48" width="40" height="40"><rect x="6" y="14" width="10" height="18" fill="#0A3C8C"/><path d="M16 16 L30 6 V40 L16 30Z" fill="#D7263D"/><path d="M36 14 q6 10 0 20" stroke="#D7263D" stroke-width="3" fill="none"/></svg><h3>Alerta imediato</h3><p style="font-size:15.5px">Retirada do dispositivo durante a operação gera alarme na hora.</p></div>
+      <div class="card blue"><svg viewBox="0 0 48 48" width="40" height="40"><circle cx="24" cy="14" r="8" fill="none" stroke="#0A3C8C" stroke-width="3"/><path d="M8 42 c2 -12 30 -12 32 0" fill="none" stroke="#0A3C8C" stroke-width="3"/><circle cx="38" cy="10" r="6" fill="#1A9E55"/></svg><h3>Percepção de segurança</h3><p style="font-size:15.5px">Operadores enxergam o estado da doca antes de entrar na carreta.</p></div>
+      <div class="card blue"><svg viewBox="0 0 48 48" width="40" height="40"><g fill="none" stroke="#0A3C8C" stroke-width="3"><rect x="6" y="8" width="14" height="14"/><rect x="28" y="8" width="14" height="14"/><rect x="6" y="28" width="14" height="14"/><rect x="28" y="28" width="14" height="14"/></g></svg><h3>Padronização</h3><p style="font-size:15.5px">Mesmo critério de “doca segura” para todos os turnos e equipes.</p></div>
+      <div class="card blue"><svg viewBox="0 0 48 48" width="40" height="40"><g fill="#0A3C8C"><rect x="4" y="18" width="10" height="22"/><rect x="19" y="18" width="10" height="22"/><rect x="34" y="18" width="10" height="22"/></g><path d="M4 12 h40" stroke="#F2A900" stroke-width="3"/></svg><h3>Replicável nas 6 docas</h3><p style="font-size:15.5px">Solução modular, desenhada desde o início para ser repetida.</p></div>
+    </div>
+    <div class="callout blue" style="font-size:14px">Os benefícios serão medidos no teste operacional por indicadores qualitativos e registros (falsos alarmes, ocorrências de doca sem trava-rodas detectadas, retorno dos operadores). Nenhum percentual de redução é projetado nesta fase.</div>
+  </div>
+  <footer class="sf"><span>Ball Corporation · Unidade Três Rios (RJ) · Expedição</span><span>Proposta conceitual — para discussão técnica</span><span class="pg">14 / 15</span></footer>
+</section>
+
+<!-- ============ 15 PRÓXIMOS PASSOS ============ -->
+<section class="slide" data-n="15">
+  <div class="stripe"></div>
+  <header class="sh"><span class="num">15</span><div><div class="kick">Convite</div><h2>Próximos passos e desenvolvimento conjunto</h2></div><div class="doc">PRJ-TR-001 · REV.0<br>Proposta conceitual</div></header>
+  <div class="body" style="gap:24px">
+    <div style="flex:0 0 560px;display:flex;flex-direction:column;gap:14px">
+      <div style="background:var(--navy);color:#fff;border-radius:8px;padding:22px 26px">
+        <div class="mono" style="font-size:12px;letter-spacing:.14em;color:#8FB3EA">CARDINAL · MANUTENÇÃO ELETRÔNICA</div>
+        <div style="font:700 28px/1.15 var(--cond);margin-top:8px">A ideia nasceu na operação. Para virar uma melhoria real, precisa do seu conhecimento técnico.</div>
+        <p style="font-size:15px;color:#C9D7EE;margin-top:10px">Propomos desenvolver juntos o protótipo: a operação traz a necessidade e o conhecimento da rotina da doca; a manutenção eletrônica traz o projeto, a escolha dos componentes e a construção.</p>
+      </div>
+      <div class="card"><h3>Onde sua experiência faz a diferença</h3>
+        <ul class="clean" style="font-size:14px"><li>Escolha e teste dos sensores no ambiente real da doca</li><li>Arquitetura elétrica, diagnóstico e tratamento de falhas</li><li>Montagem do painel e integração com a infraestrutura existente</li><li>Confiabilidade e manutenibilidade da solução</li></ul></div>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;gap:12px">
+      <h3>Primeiras ações propostas</h3>
+      <div class="steps" style="display:flex;flex-direction:column;gap:8px">
+        <div class="card" style="display:flex;gap:12px;align-items:center;padding:10px 14px"><span class="tag t-blu">01</span><span style="font-size:14.5px">Visita técnica conjunta à doca piloto</span></div>
+        <div class="card" style="display:flex;gap:12px;align-items:center;padding:10px 14px"><span class="tag t-blu">02</span><span style="font-size:14.5px">Levantamento do trava-rodas atual e dos pontos de fixação</span></div>
+        <div class="card" style="display:flex;gap:12px;align-items:center;padding:10px 14px"><span class="tag t-blu">03</span><span style="font-size:14.5px">Revisão crítica deste conceito e escolha da tecnologia de S1 e S2</span></div>
+        <div class="card" style="display:flex;gap:12px;align-items:center;padding:10px 14px"><span class="tag t-blu">04</span><span style="font-size:14.5px">Lista de material para bancada e verificação do que há em estoque</span></div>
+        <div class="card" style="display:flex;gap:12px;align-items:center;padding:10px 14px"><span class="tag t-blu">05</span><span style="font-size:14.5px">Apresentação conjunta à supervisão, Engenharia e Segurança do Trabalho</span></div>
+      </div>
+      <div style="margin-top:auto;display:grid;grid-template-columns:1fr 1fr;gap:18px;font:500 11px var(--mono);color:var(--muted)">
+        <div style="border-top:1.5px solid var(--line);padding-top:6px">PROPONENTE · EXPEDIÇÃO / LOGÍSTICA</div>
+        <div style="border-top:1.5px solid var(--line);padding-top:6px">PARCEIRO TÉCNICO · CARDINAL</div>
+      </div>
+    </div>
+  </div>
+  <footer class="sf"><span>Ball Corporation · Unidade Três Rios (RJ) · Expedição</span><span>Proposta conceitual — para discussão técnica</span><span class="pg">15 / 15</span></footer>
+</section>
+
+</div></div>
+
+<div id="nav"><button id="prev" aria-label="Anterior">◀</button><span id="cnt">1 / 15</span><button id="next" aria-label="Próximo">▶</button><button id="fs" aria-label="Tela cheia">⛶</button></div>
+
+<style>
+.tw{display:inline-flex;gap:3px;background:#3B4252;padding:3px 4px;border-radius:3px;vertical-align:middle}
+.tw i{width:14px;height:12px;border-radius:2px;background:#5D6677;display:block}
+.tw i.r{background:var(--red);box-shadow:0 0 6px var(--red)}
+.tw i.a{background:var(--amber);box-shadow:0 0 6px var(--amber)}
+.tw i.g{background:var(--green);box-shadow:0 0 6px var(--green)}
+</style>
+
+<script>
+/* terminal blocks in panel drawing */
+(function(){
+  var g=document.getElementById('terms'),s='';
+  for(var i=0;i<38;i++){
+    var x=60+i*10.6, c='#E6EAF0';
+    if(i>=20&&i<24)c='#5B8FD6'; if(i>=24&&i<28)c='#9ED17A'; if(i>=34)c='#E6D25A';
+    s+='<rect x="'+x+'" y="312" width="9" height="66" rx="1" fill="'+c+'" stroke="#7F8FA6" stroke-width=".8"/>';
+    s+='<circle cx="'+(x+4.5)+'" cy="322" r="2" fill="#7F8FA6"/><circle cx="'+(x+4.5)+'" cy="368" r="2" fill="#7F8FA6"/>';
+  }
+  g.innerHTML=s;
+})();
+/* balloons in panel drawing, placed after terms so they sit on top */
+(function(){
+  var svg=document.querySelector('[data-n="8"] svg'), ns='http://www.w3.org/2000/svg';
+  var b=[[60,2,'1'],[130,2,'2'],[250,2,'3'],[380,2,'4'],[4,240,'5'],[452,154,'6'],[4,380,'7'],[506,360,'8'],[190,512,'9']];
+  b.forEach(function(p){var g=document.createElementNS(ns,'g');g.setAttribute('class','bal');
+    g.innerHTML='<circle cx="'+p[0]+'" cy="'+p[1]+'" r="11"/><text x="'+p[0]+'" y="'+p[1]+'">'+p[2]+'</text>';svg.appendChild(g);});
+  svg.setAttribute('viewBox','-14 -14 534 540');
+})();
+/* timing diagram */
+(function(){
+  var svg=document.getElementById('timing'),s='';
+  var x0=150,x1=1170,ev=[[220,'chegada'],[330,'trava instalado'],[470,'retirada indevida'],[560,'reinstalado'],[690,'cabo rompido'],[800,'reparo + reconh.'],[930,'retirada p/ saída'],[1030,'carreta sai']];
+  ev.forEach(function(e,i){s+='<line x1="'+e[0]+'" y1="26" x2="'+e[0]+'" y2="218" stroke="#B9C5D6" stroke-dasharray="3 3"/>';
+    s+='<text x="'+e[0]+'" y="'+(i%2?22:10)+'" text-anchor="middle" font-family="IBM Plex Mono" font-size="9.5" fill="#22416E">'+e[1]+'</text>';});
+  var rows=[
+    ['S1 carreta','#0A3C8C',[[220,1030]],0],
+    ['S2 confirmado','#0091DA',[[345,470],[575,690],[815,930]],[[690,800]]],
+    ['Sirene','#D7263D',[[220,345],[470,575],[930,1030]],0,[[690,800]]],
+    ['Vermelho','#D7263D',[[220,345],[470,575],[930,1030]],0],
+    ['Amarelo','#C98C00',[],0,[[690,800]]],
+    ['Verde','#1A9E55',[[345,470],[575,690],[815,930]],0]
+  ];
+  rows.forEach(function(r,i){
+    var top=34+i*31, hi=top+3, lo=top+21;
+    s+='<text x="8" y="'+(top+16)+'" font-family="IBM Plex Mono" font-size="11" font-weight="600" fill="#1B2A41">'+r[0]+'</text>';
+    s+='<line x1="'+x0+'" y1="'+lo+'" x2="'+x1+'" y2="'+lo+'" stroke="#E1E7EF"/>';
+    var d='M'+x0+' '+lo;
+    r[2].forEach(function(iv){d+=' H'+iv[0]+' V'+hi+' H'+iv[1]+' V'+lo;});
+    d+=' H'+x1;
+    r[2].forEach(function(iv){s+='<rect x="'+iv[0]+'" y="'+hi+'" width="'+(iv[1]-iv[0])+'" height="'+(lo-hi)+'" fill="'+r[1]+'" fill-opacity=".14"/>';});
+    if(r[3])r[3].forEach(function(iv){s+='<rect x="'+iv[0]+'" y="'+hi+'" width="'+(iv[1]-iv[0])+'" height="'+(lo-hi)+'" fill="url(#hSteel)" stroke="#7F8FA6"/><text x="'+((iv[0]+iv[1])/2)+'" y="'+(lo-5)+'" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#1B2A41">indefinido</text>';});
+    if(r[4])r[4].forEach(function(iv){for(var x=iv[0];x<iv[1]-4;x+=16){d+=' M'+x+' '+lo+' V'+hi+' H'+(x+8)+' V'+lo;}
+      s+='<rect x="'+iv[0]+'" y="'+hi+'" width="'+(iv[1]-iv[0])+'" height="'+(lo-hi)+'" fill="'+r[1]+'" fill-opacity=".08"/>';});
+    s+='<path d="'+d+'" fill="none" stroke="'+r[1]+'" stroke-width="2"/>';
+  });
+  s+='<text x="'+(x1-2)+'" y="218" text-anchor="end" font-family="IBM Plex Mono" font-size="9" fill="#5B6B82">tempo →  (escala ilustrativa)</text>';
+  svg.innerHTML=s;
+})();
+/* navigation */
+(function(){
+  var slides=[].slice.call(document.querySelectorAll('.slide')),i=0,deck=document.getElementById('deck');
+  function fit(){var s=Math.min(window.innerWidth/1280,window.innerHeight/720);deck.style.transform='scale('+s+')';}
+  function go(n){i=Math.max(0,Math.min(slides.length-1,n));slides.forEach(function(s,k){s.classList.toggle('active',k===i)});
+    document.getElementById('cnt').textContent=(i+1)+' / '+slides.length;
+    document.getElementById('prog').style.width=((i+1)/slides.length*100)+'%';
+    try{history.replaceState(null,'','#'+(i+1))}catch(e){}}
+  document.getElementById('prev').onclick=function(){go(i-1)};
+  document.getElementById('next').onclick=function(){go(i+1)};
+  document.getElementById('fs').onclick=function(){if(document.fullscreenElement)document.exitFullscreen();else document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen();};
+  document.addEventListener('keydown',function(e){
+    if(['ArrowRight','PageDown',' ','Enter'].indexOf(e.key)>=0){e.preventDefault();go(i+1)}
+    if(['ArrowLeft','PageUp','Backspace'].indexOf(e.key)>=0){e.preventDefault();go(i-1)}
+    if(e.key==='Home')go(0); if(e.key==='End')go(slides.length-1);
+  });
+  var tx=null;document.addEventListener('touchstart',function(e){tx=e.touches[0].clientX},{passive:true});
+  document.addEventListener('touchend',function(e){if(tx===null)return;var dx=e.changedTouches[0].clientX-tx;if(Math.abs(dx)>50)go(i+(dx<0?1:-1));tx=null});
+  window.addEventListener('resize',fit);fit();
+  var h=parseInt(location.hash.slice(1),10);go(isNaN(h)?0:h-1);
+})();
+</script>
+</body>
+</html>
